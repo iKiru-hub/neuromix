@@ -319,7 +319,7 @@ class Substrate:
         self.activity = 0.
 
         # backward
-        self.back_loss = np.zeros(1)
+        self.back_loss = np.zeros((1, 1))
         
         # initialization
         self.initialization_flag = False
@@ -1687,7 +1687,8 @@ class Protein(Substrate):
 
         # if the weights are trainable, then update the trainable record adjusting for the number of inputs
         if 'w' in self.DNA['more']['trainable_params']:
-            self.nb_trainable = self.nb_input + 1
+
+            self.nb_trainable = self.nb_input
             self.trainable_params = np.zeros(self.nb_trainable)  # number of weights + one bias
 
             # weights
@@ -1695,6 +1696,9 @@ class Protein(Substrate):
 
             # tuple
             self.trainable_names = tuple(self.trainable_names)
+
+        #
+        self.trainable = self.nb_trainable > 0
 
         #
         self.update_dna()
@@ -2646,10 +2650,11 @@ class ProteinPoly(Protein):
 class ProteinPlasticity(Protein):
 
     """
-    base class for Protein implementing a plasticity rule
+    base class for Protein implementing a plasticity rule,
+    if this class is used, it implements a simple weighted input, and it is trained with the gradient
     """
 
-    def __init__(self, dna: dict):
+    def __init__(self, dna: dict, verbose=False):
 
         """
         :param dna: dict,
@@ -2663,6 +2668,13 @@ class ProteinPlasticity(Protein):
         # plasticity variables
         self.internals = np.zeros(2)
 
+        if verbose:
+            print('\n@ProteinPlasticity', end='')
+            if self.trainable:
+                print(' [trainable]')
+            else:
+                print()
+
     def step(self):
 
         """
@@ -2671,6 +2683,17 @@ class ProteinPlasticity(Protein):
         """
 
         self.activity = np.dot(self.weights, self.ext_inputs)
+
+    def update(self):
+
+        """
+        :return: None
+        """
+
+        if self.trainable:
+            self.weights = self.weights + self.lr * self.back_loss
+
+            self.back_loss *= 0
 
     def collect_internals(self, internals: np.ndarray):
 
@@ -2799,7 +2822,10 @@ protein_dict = {'exp': lambda dna, verbose: ProteinExp(dna=dna, verbose=verbose)
                 'expbeta': lambda dna, verbose: ProteinExpBeta(dna=dna, verbose=verbose),
                 'cond': lambda dna, verbose: ProteinCond(dna=dna, verbose=verbose),
                 'poly': lambda dna, verbose: ProteinPoly(dna=dna, verbose=verbose),
-                'spike': lambda dna, verbose: ProteinSpike(dna=dna, verbose=verbose) 
+                'spike': lambda dna, verbose: ProteinSpike(dna=dna, verbose=verbose),
+                'plasticity_base': lambda dna, verbose: ProteinPlasticity(dna=dna, verbose=verbose),
+                'plasticity_stdp': lambda dna, verbose: ProteinPlasticitySTDP(dna=dna, verbose=verbose),
+                'plasticity_reward': lambda dna, verbose: ProteinPlasticityReward(dna=dna, verbose=verbose),
                 }
 
 

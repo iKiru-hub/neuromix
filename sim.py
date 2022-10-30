@@ -942,7 +942,7 @@ class Gym(TestMap):
                         plt.plot(x, activity[i, :], '-k', alpha=0.5, label=f'input {i + 1}')
     
                     for j in range(nb_targets):
-                        plt.plot(x, activity[i + j + 1, :], '--', color='orange', alpha=0.8, label=f'target {j + 1}')
+                        plt.plot(x, activity[i + j + 1, :], '-', color='orange', alpha=0.5, label=f'target {j + 1}')
     
                     for k in range(nb_output):
                         plt.plot(x, activity[i + j + k + 2, :], '-g', alpha=0.85, label=f'output {k + 1}')

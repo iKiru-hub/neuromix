@@ -129,6 +129,15 @@ DNAspike = ('Protein', {'variety': 'spike',
                         }
             )
 
+DNAplasticty = ('Protein', {'variety': 'plasticity_base',
+                            'attributes': {'w': [0.7]
+                                           },
+                            'more': {'trainable_params': ['w'],
+                                     'lr': 0.001,
+                                     },
+                            }
+                )
+
 DNAcond = ('Protein', {'variety': 'cond',
                       'attributes': {'tau': 300,
                                      'Eq': 0.,
@@ -143,7 +152,7 @@ DNAcond = ('Protein', {'variety': 'cond',
                       })
 
 
-sub = mix.brain.generate_substrate(dna=DNAspike)
+sub = mix.brain.generate_substrate(dna=DNAplasticty)
 sub.initialize(nb_inputs=1, idx=1)
 
 #draw_graph(connections=DNAcell_base[1]['connections'],
@@ -157,7 +166,7 @@ sub.initialize(nb_inputs=1, idx=1)
 
 #### SIMULATION #####
 
-run = 2
+run = 3
 
 # initialize gym
 if run > 0:
@@ -165,11 +174,11 @@ if run > 0:
     gym = mix.sim.Gym()
 
     gym.add_input(kind='continuous', freq=[13], duration=1_000, nb=1,
-                  function=lambda x: 1 + 0.*(sin(x / 150) / 15 + 0.3 +0.2* cos(x / 60)) * exp(-0.0003 * x), 
+                  function=lambda x: (sin(x / 150) / 15 + 0.3 + 0.2* cos(x / 60)) * exp(-0.0003 * x),
                   nb_classes=5)
 
-    #gym.add_target(kind='continuous', freq=[1], nb=1, function=lambda x: (sin(x / 100) / 2 + 1 +0.3* cos(x / 70)) * exp(-0.0004 * x),
-    #               decay_params=(1, 0.005))
+    gym.add_target(kind='continuous', freq=[1], nb=1, function=lambda x: ((sin(x / 100) / 10 + 0.5 + 0.1 * cos(x / 70)) * exp(-0.0004 * x)),
+                   decay_params=(1, 0.005))
 
     gym.plot_stimuli(show_input=1, show_target=1, fix_dim=1)
 
@@ -179,11 +188,11 @@ if run > 0:
 # short
 if run == 2:
 
-    gym.simulation(plot_style='plot', verbose=True, training=0)
+    gym.simulation(plot_style='plot', verbose=True, training=1)
 
 # long
 elif run == 3:
-    gym.long_simulation(epochs=400, info_freq=20, plot_style='plot', training=1,
+    gym.long_simulation(epochs=100, info_freq=10, plot_style='plot', training=1,
                         rigenerate=0)
     
     #gym.plot_classes_test()
