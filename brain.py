@@ -315,11 +315,11 @@ class Substrate:
         self.trainable = self.nb_trainable > 0
 
         # variables
-        self.inputs = np.zeros((self.nb_input, 1))
+        self.ext_inputs = np.zeros((self.nb_input, 1))
         self.activity = 0.
 
         # backward
-        self.back_loss = 0.
+        self.back_loss = np.zeros(1)
         
         # initialization
         self.initialization_flag = False
@@ -393,7 +393,7 @@ class Substrate:
         :return: np.ndarray
         """
 
-        return self.back_loss * self.weights
+        return self.back_loss
 
     def get_output(self):
 
@@ -460,16 +460,16 @@ class Substrate:
     def get_dna(self):
         
         """
-        :return list
+        :return: list
         """
         
-        return (self.substrate_name, self.DNA)
+        return self.substrate_name, self.DNA
     
     def update_dna(self):
         
         """
         update the dna with the new parameters
-        :return None
+        :return: None
         """
         
         pass
@@ -489,7 +489,7 @@ class Substrate:
         :return: None
         """
 
-        self.inputs *= 0
+        self.ext_inputs *= 0
         self.activity *= 0.
 
 
@@ -1650,7 +1650,7 @@ class Protein(Substrate):
 
         # parameters
         self.weights = False
-        
+
         # if weights already defined in the DNA, use those
         if 'attributes' in tuple(self.DNA.keys()):
             if 'w' in tuple(self.DNA['attributes'].keys()):
@@ -1662,7 +1662,6 @@ class Protein(Substrate):
         # activation
         self.activation = lambda x: x
         self.activation_deriv = lambda x: 1
-    
 
 
     def initialize(self, nb_inputs: int, idx: int):
@@ -1676,22 +1675,30 @@ class Protein(Substrate):
 
         self.nb_input = nb_inputs
         self.id = idx
+        self.ext_inputs = np.zeros((nb_inputs, 1))
 
-        # weights not initialized yet
-        if not self.weights:
-            self.weights = np.ones((1, nb_inputs))
-            return
+        # weights not initialized yet -> create and record
+        if not isinstance(self.weights, np.ndarray):
+            self.weights = np.abs(np.random.normal(1, 1 / np.sqrt(nb_inputs + 1), (1, nb_inputs)))
 
         # weights already initialized, check
-        if self.weights.shape[1] != nb_inputs:
-            raise ValueError(f'weights of shape {self.w.shape} do not match the number of inputs [{nb_inputs:d}]')
+        elif self.weights.shape[1] != nb_inputs:
+            raise ValueError(f'weights of shape {self.weights.shape} do not match the number of inputs [{nb_inputs:d}]')
 
         # if the weights are trainable, then update the trainable record adjusting for the number of inputs
         if 'w' in self.DNA['more']['trainable_params']:
-            self.nb_trainable = max((0, self.nb_trainable + self.nb_input - 1))
-            self.trainable_params = np.zeros(self.nb_trainable)
-            
-        # checked
+            self.nb_trainable = self.nb_input + 1
+            self.trainable_params = np.zeros(self.nb_trainable)  # number of weights + one bias
+
+            # weights
+            self.trainable_names = [f'w{i + 1}' for i in range(nb_inputs)]
+
+            # tuple
+            self.trainable_names = tuple(self.trainable_names)
+
+        #
+        self.update_dna()
+        #
         self.initialization_flag = True
         
         
@@ -1706,13 +1713,24 @@ class Protein(Substrate):
         # dont store absent inputs
         if np.any(inputs != 0):
             self.ext_inputs[:] = inputs
-            
+
+
+    def get_trainable_params(self):
+
+        """
+        :return: list, if trainable is True then return a list with the current
+        values for the weights and bias
+        """
+
+        if self.trainable:
+            self.trainable_params[:-1] = self.weights[0]
+
 
     @staticmethod
     def get_substrate_name():
 
         """
-        :return: str, Protein
+        :return: str, "Protein"
         """
 
         return 'Protein'
@@ -2131,15 +2149,7 @@ class ProteinBase(Protein):
         """
 
         self.back_loss += backpropagated_loss * self.activation_deriv(self.z)
-        
 
-    def get_trainable_names(self):
-
-        """
-        :return: list, names of the trainable parameters
-        """
-
-        return self.trainable_names
     
     def get_trainable_params(self):
 
@@ -2156,14 +2166,6 @@ class ProteinBase(Protein):
         
         
         return self.trainable_params
-
-
-    def get_output(self):
-        
-        """
-        :return: float, the output of the Protein
-        """
-        return self.activity
 
 
     def initialize(self, nb_inputs: int, idx: int):
@@ -2185,7 +2187,7 @@ class ProteinBase(Protein):
 
         # weights already initialized, check
         elif self.weights.shape[1] != nb_inputs:
-            raise ValueError(f'weights of shape {self.w.shape} do not match the number of inputs [{nb_inputs:d}]')
+            raise ValueError(f'weights of shape {self.weights.shape} do not match the number of inputs [{nb_inputs:d}]')
 
         # if the weights are trainable, then update the trainable record adjusting for the number of inputs
         if 'w' in self.DNA['more']['trainable_params']:
@@ -2219,15 +2221,6 @@ class ProteinBase(Protein):
         self.DNA['attributes']['b'] = self.bias
 
 
-    def reset(self):
-
-        """
-        reset the run-time variables
-        :return: None
-        """
-
-        self.z *= 0
-        self.activity *= 0
 
 
 class ProteinCond(Protein):
@@ -2517,7 +2510,7 @@ class ProteinSpike(Protein):
 
 class ProteinPoly(Protein):
 
-    def __init__(self, dna: dict):
+    def __init__(self, dna: dict, verbose=False):
 
         super().__init__(dna=dna)
 
@@ -2648,6 +2641,157 @@ class ProteinPoly(Protein):
 
         self.z = 0
         self.x = 1000
+
+
+class ProteinPlasticity(Protein):
+
+    """
+    base class for Protein implementing a plasticity rule
+    """
+
+    def __init__(self, dna: dict):
+
+        """
+        :param dna: dict,
+        :param verbose: bool
+        """
+
+        # dna
+        super().__init__(dna=dna)
+        self.substrate_name = 'ProteinPlasticity'
+
+        # plasticity variables
+        self.internals = np.zeros(2)
+
+    def step(self):
+
+        """
+        receive and input and compute the output as a weighted sum
+        :return: None
+        """
+
+        self.activity = np.dot(self.weights, self.ext_inputs)
+
+    def collect_internals(self, internals: np.ndarray):
+
+        """
+        collect internal variables relevant for the plasticity rule
+        :param internals: np.ndarray, array of variables of interest
+        :return: None
+        """
+
+        self.internals = internals
+
+    @staticmethod
+    def get_substrate_name():
+
+        """
+        :return: str, "ProteinPlasticity"
+        """
+
+        return 'ProteinPlasticity'
+
+
+class ProteinPlasticitySTDP(ProteinPlasticity):
+
+    """
+    ProteinPlasticity implementing an STDP rule
+    """
+
+    def __init__(self, dna: dict, verbose=False):
+
+        """
+        :param dna: dict,
+        :param verbose: bool
+        """
+
+        # dna
+        super().__init__(dna=dna)
+
+        # plasticity parameters
+        self.A_plus = self.DNA['attributes']['A+']
+        self.A_minus = self.DNA['attributes']['A-']
+        self.magnitudes = np.array([self.DNA['attributes']['a+'], self.DNA['attributes']['a-']])
+        self.tau_tr = self.DNA['attributes']['tau_tr']
+        self.tau_stdp = self.DNA['attributes']['tau_stdp']
+
+        # variable parameters
+        self.traces = np.zeros(2)  # <-------------------- for now considers only 1 input and 1 cell spike channel
+
+        self.stdp = 0.
+
+        if verbose:
+            print('\n@ProteinPlasticitySTDP', end='')
+            if self.trainable:
+                print(' [trainable]')
+            else:
+                print()
+
+    def update(self):
+
+        """
+        STDP step
+        :return: None
+        """
+
+        self.traces = self.traces - self.traces / self.tau_tr + self.magnitudes * self.internals[:2]
+        self.stdp = self.A_plus * self.traces[0] * self.internals[1] + self.A_minus * self.traces[1] * self.internals[0]
+
+        if self.trainable:
+            self.weights = self.weights + self.lr * self.stdp
+
+
+class ProteinPlasticityReward(ProteinPlasticity):
+    """
+    ProteinPlasticity implementing an [dopamine] reward-based STDP rule
+    """
+
+    def __init__(self, dna: dict, verbose=False):
+
+        """
+        :param dna: dict,
+        :param verbose: bool
+        """
+
+        # dna
+        super().__init__(dna=dna)
+
+        # plasticity parameters
+        self.A_plus = self.DNA['attributes']['A+']
+        self.A_minus = self.DNA['attributes']['A-']
+        self.magnitudes = np.array([self.DNA['attributes']['a+'], self.DNA['attributes']['a-']])
+        self.magnitude_rew = self.DNA['attributes']['a_rew']
+        self.tau_tr = self.DNA['attributes']['tau_tr']
+        self.tau_stdp = self.DNA['attributes']['tau_stdp']
+        self.tau_rew = self.DNA['attributes']['tau_re']
+
+        # variable parameters
+        self.traces = np.zeros(2)   # <-------------------- for now considers only 1 input, 1 cell spike channel and
+                                    # 1 reward channel
+        self.trace_rew = 0.
+        self.stdp = 0.
+
+        if verbose:
+            print('\n@ProteinPlasticitySTDP', end='')
+            if self.trainable:
+                print(' [trainable]')
+            else:
+                print()
+
+    def update(self):
+
+        """
+        STDP step
+        :return: None
+        """
+
+        self.traces = self.traces - self.traces / self.tau_tr + self.magnitudes * self.internals[:2]
+        self.trace_rew = self.trace_rew - self.trace_rew / self.tau_rew + self.magnitude_rew * self.internals[2]
+        self.stdp = self.A_plus * self.traces[0] * self.internals[1] + self.A_minus * self.traces[1] * self.internals[0]
+
+        if self.trainable:
+            self.weights = self.weights + self.lr * self.stdp * self.trace_rew
+
 
 
 protein_dict = {'exp': lambda dna, verbose: ProteinExp(dna=dna, verbose=verbose),
