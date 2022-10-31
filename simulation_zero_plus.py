@@ -11,7 +11,7 @@ from numpy import sin, cos, exp
 
 
 DNAcell_mix = ('Cell', {'components': [('Protein', {'variety': 'exp',
-                                                'attributes': {'tau': 50,
+                                                'params': {'tau': 50,
                                                                'Eq': 0,
                                                                'w': [1]
                                                                },
@@ -21,7 +21,7 @@ DNAcell_mix = ('Cell', {'components': [('Protein', {'variety': 'exp',
                                                          }
                                                 }),
                                        ('Protein', {'variety': 'exp',
-                                                    'attributes': {'tau': 50,
+                                                    'params': {'tau': 50,
                                                                    'Eq': 0,
                                                                    'w': [1]
                                                                    },
@@ -31,14 +31,14 @@ DNAcell_mix = ('Cell', {'components': [('Protein', {'variety': 'exp',
                                                              }
                                                     }),
                                         ('Protein', {'variety': 'base',
-                                                     'attributes': {},
+                                                     'params': {},
                                                      'more': {'trainable_params': ['w'],
                                                               'lr': 0.01,
                                                               'activation': 'sigMod'
                                                               }
                                                      }),
                                         ('Protein', {'variety': 'exp',
-                                                     'attributes': {'tau': 50,
+                                                     'params': {'tau': 50,
                                                                     'Eq': 0,
                                                                     'w': [1]
                                                                     },
@@ -51,7 +51,7 @@ DNAcell_mix = ('Cell', {'components': [('Protein', {'variety': 'exp',
 
                     'connections': [(0, 1), (1, 2), (2, 3)],
 
-                    'attributes': {},
+                    'params': {},
 
                     'more': {'nb_in': 1,
                              'nb_out': 1,
@@ -62,28 +62,28 @@ DNAcell_mix = ('Cell', {'components': [('Protein', {'variety': 'exp',
            )
 
 DNAcell_base = ('Cell', {'components': [('Protein', {'variety': 'base',
-                                                     'attributes': {},
+                                                     'params': {},
                                                      'more': {'trainable_params': ['w'],
                                                               'lr': 0.01,
                                                               'activation': 'sigmoid'
                                                               }
                                                      }),
                                         ('Protein', {'variety': 'base',
-                                                     'attributes': {},
+                                                     'params': {},
                                                      'more': {'trainable_params': ['w'],
                                                               'lr': 0.01,
                                                               'activation': 'sigmoid'
                                                               }
                                                      }),
                                         ('Protein', {'variety': 'base',
-                                                     'attributes': {},
+                                                     'params': {},
                                                      'more': {'trainable_params': ['w'],
                                                               'lr': 0.01,
                                                               'activation': 'sigmoid'
                                                               }
                                                      }),
                                         ('Protein', {'variety': 'base',
-                                                     'attributes': {},
+                                                     'params': {},
                                                      'more': {'trainable_params': ['w'],
                                                               'lr': 0.01,
                                                               'activation': 'relu'
@@ -92,20 +92,20 @@ DNAcell_base = ('Cell', {'components': [('Protein', {'variety': 'base',
                                    ],
 
                     'connections': [(0, 1), (0, 2), (1, 3), (2, 4), (3, 4)],
-                    'attributes': {},
+                    'params': {},
 
                     'more': {'nb_in': 1,
                              'nb_out': 1,
                              'trainable_params': [],
                              'lr': 0.1,
-                             'cycles':3,
+                             'cycles': 3,
                              }
                     }
            )
 
 
 DNAexp = ('Protein', {'variety': 'exp',
-                      'attributes': {'tau': 40,
+                      'params': {'tau': 40,
                                      'Eq': 0,
                                      'w': [1, 1]
                                      },
@@ -116,7 +116,7 @@ DNAexp = ('Protein', {'variety': 'exp',
                       })
 
 DNAbase = ('Protein', {'variety': 'base',
-                       'attributes': {},
+                       'params': {},
                        'more': {'trainable_params': ['w'],
                                 'lr': 0.01,
                                 'activation': 'relu'
@@ -124,13 +124,14 @@ DNAbase = ('Protein', {'variety': 'base',
                        })
 
 DNAspike = ('Protein', {'variety': 'spike',
-                        'attributes': {'scale': 0.01
-                                       }
+                        'params': {'scale': 10,
+                                   'rate': 0.05,
+                                   }
                         }
             )
 
 DNAplasticty = ('Protein', {'variety': 'plasticity_base',
-                            'attributes': {'w': [0.7]
+                            'params': {'w': [0.7]
                                            },
                             'more': {'trainable_params': ['w'],
                                      'lr': 0.001,
@@ -139,20 +140,21 @@ DNAplasticty = ('Protein', {'variety': 'plasticity_base',
                 )
 
 DNAcond = ('Protein', {'variety': 'cond',
-                      'attributes': {'tau': 300,
-                                     'Eq': 0.,
-                                     'taug': 800,
-                                     'Epeak': 1,
-                                     'w': [1]
-                                     },
+                       'params': {'tau': 300,
+                                  'Eq': 0.,
+                                  'taug': 800,
+                                  'Epeak': 1,
+                                  'w': [1]
+                                  },
                       'more': {'trainable_params': ['tau'],
                                'lr': 0.01,
                                'activation': 'none'
                                }
-                      })
+                      }
+           )
 
 
-sub = mix.brain.generate_substrate(dna=DNAplasticty)
+sub = mix.brain.generate_substrate(dna=DNAspike)
 sub.initialize(nb_inputs=1, idx=1)
 
 #draw_graph(connections=DNAcell_base[1]['connections'],
@@ -166,7 +168,7 @@ sub.initialize(nb_inputs=1, idx=1)
 
 #### SIMULATION #####
 
-run = 3
+run = 2
 
 # initialize gym
 if run > 0:
@@ -174,11 +176,11 @@ if run > 0:
     gym = mix.sim.Gym()
 
     gym.add_input(kind='continuous', freq=[13], duration=1_000, nb=1,
-                  function=lambda x: (sin(x / 150) / 15 + 0.3 + 0.2* cos(x / 60)) * exp(-0.0003 * x),
+                  function=lambda x: 0. + 0*(sin(x / 150) / 15 + 0.3 + 0.2* cos(x / 60)) * exp(-0.0003 * x),
                   nb_classes=5)
 
-    gym.add_target(kind='continuous', freq=[1], nb=1, function=lambda x: ((sin(x / 100) / 10 + 0.5 + 0.1 * cos(x / 70)) * exp(-0.0004 * x)),
-                   decay_params=(1, 0.005))
+    #gym.add_target(kind='continuous', freq=[1], nb=1, function=lambda x: ((sin(x / 100) / 10 + 0.5 + 0.1 * cos(x / 70)) * exp(-0.0004 * x)),
+    #               decay_params=(1, 0.005))
 
     gym.plot_stimuli(show_input=1, show_target=1, fix_dim=1)
 

@@ -932,7 +932,7 @@ class Gym(TestMap):
             i, j, k = 0, -1, 0
             if plot_style == 'plot':
                 
-                # classes data kind
+                # not classes data kind
                 if not self.stimuli_data['input']['kind'] == 'classes':
 
                     plt.figure()
@@ -947,6 +947,7 @@ class Gym(TestMap):
                     for k in range(nb_output):
                         plt.plot(x, activity[i + j + k + 2, :], '-g', alpha=0.85, label=f'output {k + 1}')
     
+                    plt.ylim((0, 1))
                     plt.xlabel('time [ms]')
                     plt.legend()
                     plt.title(f'Plot of the activity for {duration}ms')

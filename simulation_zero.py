@@ -6,21 +6,21 @@ if __name__ == '__main__':
    
 
     DNAcell = ('Cell', {'components': [('Protein', {'variety': 'base',
-                                                     'attributes': {},
+                                                     'params': {},
                                                      'more': {'trainable_params': ['w'],
                                                               'lr': 0.01,
                                                               'acvtivation': 'sigmoid'
                                                               }
                                                      }),
                                        ('Protein', {'variety': 'base',
-                                                     'attributes': {},
+                                                     'params': {},
                                                      'more': {'trainable_params': ['w'],
                                                               'lr': 0.01,
                                                               'acvtivation': 'sigmoid'
                                                               }
                                                      }),
                                        ('Protein', {'variety': 'base',
-                                                     'attributes': {},
+                                                     'params': {},
                                                      'more': {'trainable_params': ['w'],
                                                               'lr': 0.01,
                                                               'activation': 'relu'
@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
                         'connections': [(0, 1), (0, 2), (2, 3), (1, 3)],
 
-                        'attributes': {},
+                        'params': {},
 
                         'more': {'nb_in': 1,
                                  'nb_out': 1,
