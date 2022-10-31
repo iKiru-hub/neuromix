@@ -9,23 +9,40 @@ Created on Mon Oct 31 13:30:54 2022
 
 import neuromix as mix  
 from numpy import cos, sin, exp
+from os import system
+import time
 
 
 #%% DNA definition
 
-dna = ('Cell', {'components': [('Protein', {'variety': 'plasticity_base',
-                                            'params': {'w': 1.},
+dna = ('Cell', {'variety': 'plasticity',
+                'components': [('Protein', {'variety': 'plasticity_stdp',
+                                            'params': {'w': 1.,
+                                                       'A+': 1.,
+                                                       'A-': -1.1,
+                                                       'a+': 3,
+                                                       'a-': 3,
+                                                       'tau_tr': 500,
+                                                       'tau_stdp': 600
+                                                       },
                                             'more': {'trainable_params': ['w'],
-                                                     'lr': 0.01,
+                                                     'lr': 1,
                                                      'variables': ['input', 
                                                                    'output']
                                                      }
                                             }
                                 ),
-                               ('Protein', {'variety': 'plasticity_base',
-                                            'params': {'w': 1.},
+                               ('Protein', {'variety': 'plasticity_stdp',
+                                            'params': {'w': 1.,
+                                                       'A+': 1.,
+                                                       'A-': -1.1,
+                                                       'a+': 3,
+                                                       'a-': 3,
+                                                       'tau_tr': 500,
+                                                       'tau_stdp': 600
+                                                       },
                                             'more': {'trainable_params': ['w'],
-                                                     'lr': 0.01,
+                                                     'lr': 1,
                                                      'variables': ['input', 
                                                                    'output']
                                                      }
@@ -37,7 +54,7 @@ dna = ('Cell', {'components': [('Protein', {'variety': 'plasticity_base',
                                                        'taug': 800,
                                                        'Epeak': 1
                                                        },
-                                            'more': {'trainable_params': ['tau'],
+                                            'more': {'trainable_params': [],
                                                      'lr': 0.01,
                                                      'activation': 'crelu'
                                                      }
@@ -45,7 +62,7 @@ dna = ('Cell', {'components': [('Protein', {'variety': 'plasticity_base',
                                 ),
                                ('Protein', {'variety': 'spike',
                                             'params': {'scale': 10,
-                                                       'rate': 0.02,
+                                                       'rate': 0.05,
                                                        }
                                             }
                                 )],
@@ -64,10 +81,10 @@ sub = mix.brain.generate_substrate(dna=dna)
 
 
 #%% Graph
-sub.add_grapher()
-sub.show_graph()
+#sub.add_grapher()
+#sub.show_graph()
 
-print('\nconnectivity matrix:\n', sub.connectivity_matrix)
+#print('\nconnectivity matrix:\n', sub.connectivity_matrix)
 
 
 #%% gym
@@ -80,13 +97,13 @@ tr_function = {'l': lambda x: 1.5e-4 * x + 0.,
 
 gym = mix.sim.Gym()
 
-gym.add_input(kind='spike', freq=[10], duration=1_000, nb=2,
+gym.add_input(kind='spike', freq=[5], duration=5_000, nb=2,
               function=in_functions['l'], nb_classes=5)
 
-#gym.add_target(kind='continuous', freq=[1], nb=1, 
-#               function=tr_function['l'], decay_params=(1, 0.005))
+gym.add_target(kind='spike', freq=[2], nb=1, 
+               function=tr_function['l'], decay_params=(1, 0.005))
 
-gym.plot_stimuli(show_input=1, show_target=1, fix_dim=1)
+#gym.plot_stimuli(show_input=1, show_target=1, style='raster', fix_dim=1)
 
 
 #%%
@@ -94,10 +111,22 @@ gym.plot_stimuli(show_input=1, show_target=1, fix_dim=1)
 gym.add_substrate(substrate=sub)
 
 #%% short simulation
-gym.simulation(plot_style='spike', verbose=True, training=0)
+#gym.simulation(plot_style='raster', verbose=True, training=0)
+
+
+#%%
+
+
+# for _ in range(100):
+#     time.sleep(0.01)
+#     sub = mix.brain.generate_substrate(dna=dna)
+#     gym.add_input(kind='spike', freq=[10], duration=1_000, nb=2,
+#                   function=in_functions['l'], nb_classes=5)
+#     gym.add_substrate(substrate=sub)
+#     gym.simulation(plot_style='spike', verbose=True, training=0)
+
 
 #%% training
-
-gym.long_simulation(epochs=100, info_freq=20, plot_style='plot', training=1,
-                    rigenerate=0)
-
+#
+gym.long_simulation(epochs=10, info_freq=5, plot_style='raster', training=1,
+                    rigenerate=1, early_stopping=False)

@@ -28,7 +28,7 @@ class Grapher:
         self.nb_output = nb_output
         
         self.connections = np.array([list(pair) for pair in connections])
-        self.nodes = range(np.min(connections), np.max(connections)+1)
+        self.nodes = tuple(range(np.min(connections), np.max(connections) + 1))
         self.n = len(self.nodes)
         
         self.coordinates = np.zeros((self.n, 2))
@@ -143,13 +143,13 @@ class Grapher:
         X += [1] * self.nb_output
         
         # y-axis
-        Y = [(i + 1) / (self.nb_input + 1) for i in range(self.nb_input)]
+        Y = [(i) / (self.nb_input + 1) for i in range(self.nb_input, 0, -1)]
         
         y0 = np.random.uniform(0.1, 0.5)
         for _ in range(self.n - self.nb_input - self.nb_output):
             Y += [ 0.5 - (2*(y0 > 0.5)-1) * np.random.uniform(0.2, 0.6)]
             y0 = Y[-1]
-        Y += [(i + 1) / (self.nb_input + 1) for i in range(self.nb_input)]
+        Y += [(i + 1) / (self.nb_output + 1) for i in range(self.nb_output)]
         
         self.coordinates[:, 0] = X
         self.coordinates[:, 1] = Y

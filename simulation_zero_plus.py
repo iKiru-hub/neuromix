@@ -10,7 +10,8 @@ from numpy import sin, cos, exp
 
 
 
-DNAcell_mix = ('Cell', {'components': [('Protein', {'variety': 'exp',
+DNAcell_mix = ('Cell', {'variety': 'base',
+                        'components': [('Protein', {'variety': 'exp',
                                                 'params': {'tau': 50,
                                                                'Eq': 0,
                                                                'w': [1]
@@ -61,7 +62,8 @@ DNAcell_mix = ('Cell', {'components': [('Protein', {'variety': 'exp',
                     }
            )
 
-DNAcell_base = ('Cell', {'components': [('Protein', {'variety': 'base',
+DNAcell_base = ('Cell', {'variety': 'base',
+                         'components': [('Protein', {'variety': 'base',
                                                      'params': {},
                                                      'more': {'trainable_params': ['w'],
                                                               'lr': 0.01,

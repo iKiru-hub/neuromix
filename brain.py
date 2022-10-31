@@ -21,7 +21,7 @@ def generate_substrate(dna: tuple, verbose=True):
         substrate = protein_dict[dna[1]['variety']](dna[1], verbose=verbose)
 
     elif substrate_name == 'Cell':
-        substrate = Cell(dna=dna[1], verbose=verbose)
+        substrate = cell_dict[dna[1]['variety']](dna=dna[1], verbose=verbose)
 
     else:
         raise NotImplementedError(f'substrate <{substrate_name}> not supported for now')
@@ -1249,8 +1249,6 @@ class SubstrateStructure(Substrate):
         
         self.trainable_components = []
         
-        self.build_structure()
-        
         # grapher
         self.grapher = False
         self.livestream = False
@@ -1393,13 +1391,12 @@ class SubstrateStructure(Substrate):
         if self.DNA['more']['nb_out'] == 0:
             warnings.warn('Isolated Structure: zero outputs specified')
 
-    def build_structure(self):
 
+    def build_structure(self):
         """
         create each component from the DNA and store them in a list
         :return: None
         """
-        
         # alphabet for the paramters name
         alphabet = ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'l', 'k')
 
@@ -1454,25 +1451,12 @@ class SubstrateStructure(Substrate):
             
         # adjust 
         self.nb_trainable = max((0, self.nb_trainable))
-            
-        # define param names #
-        # loop over the component to get the parameters from
-        """for i, param_name in enumerate(self.trainable_params):
-            
-            # component params, check if the params is within the trainable parameters
-            if param_name[0] == f'c{i+1}':
-                param_idx = int(param_name[1:]) 
-                param_values = self.components[param_idx].get_trainable_params()
-            
-                # set name
-                self.trainable_names += [param_name + f'_{alphabet[k]}' for k
-                                         in range(len(param_values))]
-                
-            else:
-            
-            self.trainable_names += [param_name]"""
-            
+                        
         self.trainable_params = np.zeros(self.nb_trainable)  
+        
+        # var
+        self.activity = np.zeros(self.nb_input + self.nb_components)
+        self.output = np.zeros(self.nb_output)
         
         # 
         self.initialization_flag = True
@@ -1718,7 +1702,7 @@ class Protein(Substrate):
 
         # dont store absent inputs
         if np.any(inputs != 0):
-            self.ext_inputs[:] = inputs
+            self.ext_inputs[:, 0] = inputs
 
 
     def get_trainable_params(self):
@@ -1729,7 +1713,7 @@ class Protein(Substrate):
         """
 
         if self.trainable:
-            self.trainable_params[:-1] = self.weights[0]
+            self.trainable_params[:] = self.weights[0]
             
         return self.trainable_params
 
@@ -2269,14 +2253,23 @@ class ProteinCond(Protein):
         :return: None
         """
         
-        self.z += (self.Eq - self.z) / self.tau + self.g * (self.Epeak - self.z)
+        if np.isnan(self.z + (self.Eq - self.z) / self.tau + (self.Eq - self.z) / self.tau):
+            print('cond pre ', (self.Eq - self.z) / self.tau, (self.Eq - self.z) / self.tau, self.z, self.tau)
+            raise ValueError
+        
+        self.z += (self.Eq - self.z) / self.tau + (self.Eq - self.z) / self.tau
+        if np.isnan(self.z):
+            print('cond ', self.activity, self.z, self.g, self.ext_inputs, self.weights, self.tau, self.taug)
+            print()
+            raise ValueError
+            
         self.g += (np.dot(self.weights, self.ext_inputs) \
                                - self.g) / self.taug
 
         self.activity = self.activation(self.z)
 
         self.ext_inputs *= 0
-
+        
 
     def update(self):
 
@@ -2465,7 +2458,11 @@ class ProteinSpike(Protein):
         :return: None
         """
 
-        self.activity = np.random.binomial(n=1, p=min((self.ext_inputs + self.rate_base, 1)))
+        try:
+            self.activity = np.random.binomial(n=1, p=np.clip(self.ext_inputs, self.rate_base, 0.9))
+        except ValueError:
+            print('probability of ', np.clip(self.ext_inputs, self.rate_base, 0.9), self.ext_inputs, self.rate_base)
+            raise ValueError
         
         self.ext_inputs *= 0
         
@@ -2478,9 +2475,14 @@ class ProteinSpike(Protein):
         :return: None
         """
 
+        # zero input
+        if inputs.item() == 0:
+            self.ext_inputs[:] = 0.
+            return
+        
         # check input
         if inputs.item() < 0 or inputs.item() > 1:
-            raise ValueError(f'{inputs} is not a valid rate')    
+            raise ValueError(f'{inputs} is not a valid rate')   
             
         # 
         self.ext_inputs[:] = inputs / self.scale
@@ -2760,8 +2762,13 @@ class ProteinPlasticitySTDP(ProteinPlasticity):
 
         self.traces = self.traces - self.traces / self.tau_tr + self.magnitudes * self.internals[:2]
         self.stdp = self.A_plus * self.traces[0] * self.internals[1] + self.A_minus * self.traces[1] * self.internals[0]
+        
+        if self.stdp != 0.:
+            print(self.stdp)
+            
 
         if self.trainable:
+            #print('stdp ', self.lr * self.stdp, self.traces, self.internals)
             self.weights = self.weights + self.lr * self.stdp
 
 
@@ -2843,6 +2850,9 @@ class Cell(SubstrateStructure):
         self.substrate_type = 'Cell'
         self.check_dna()
         
+        # initialize
+        self.build_structure()
+        
         if verbose:
             print(f'\n@{self.substrate_name + self.substrate_type}', end='')
             if self.trainable:
@@ -2904,6 +2914,8 @@ class CellPlasticity(SubstrateStructure):
         # plasticity variables [output, inputs..., modulators...]
         self.internals = np.zeros(2)
         
+        # initialize
+        self.build_structure()
         
         if verbose:
             print(f'\n@{self.substrate_name + self.substrate_type}', end='')
@@ -2973,8 +2985,8 @@ class CellPlasticity(SubstrateStructure):
         :return: None
         """
 
-        if self.back_loss.sum() == 0:
-            return
+        # if self.back_loss.sum() == 0:
+        #    return
 
         # loss at the output nodes
         for k in range(self.nb_output):
@@ -3002,7 +3014,6 @@ class CellPlasticity(SubstrateStructure):
         # reset
         self.back_loss *= 0
         
-        
     def set_internals(self):
         
         """
@@ -3011,22 +3022,85 @@ class CellPlasticity(SubstrateStructure):
         """
         
         self.internals[0] = self.output.item()
-        self.internals[1: self.nb_input] = self.activity[:self.nb_input]
+        self.internals[1: 1 + self.nb_input] = self.activity[:self.nb_input]
         # self.internals[1 + self.nb_input: ] = 
     
-    def initialize_plasticity(self):
-        
+    def build_structure(self):
         """
-        set and initialize the variables used for plasticity, the specifications
-        are defined by the ProteinPlasticity of the input nodes
+        create each component from the DNA and store them in a list
         :return: None
         """
-        
-        # loop over the input nodes
-        for idx in range(self.nb_input):
+        # alphabet for the paramters name
+        alphabet = ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'l', 'k')
+
+        # list of components and connections
+        dna_components = self.DNA['components']
+        dna_connections = self.DNA['connections']
+
+        # create each component
+        for idx, protein_gene in enumerate(dna_components):
+            protein = generate_substrate(dna=protein_gene, verbose=self.verbose)
+            self.components += [protein]
+
+            if 'more' in tuple(protein_gene[1].keys()):
+                self.trainable_components += [idx] * int(protein_gene[1]['more']['trainable_params'].__len__() > 0)
+
+        # trainable
+        self.trainable = self.trainable_components.__len__() > 0
+
+        # number of inputs and components
+        self.nb_input = self.DNA['more']['nb_in']  # inputs
+        self.nb_output = self.DNA['more']['nb_out']
+        self.nb_components = len(self.components)  # components
+        tot = len(self.components) + self.nb_input   # total
+
+        # build a connectivity matrix
+        self.connectivity_matrix = np.zeros((tot, tot))
+
+        # NB: the number of external inputs shall be considered; e.g. one input has index 0
+        for j, i in dna_connections:
+            if i >= tot:
+                raise ValueError(f'source index {i} is too big')
+            if j >= tot:
+                raise ValueError(f'sink index {j} is too big')
+            self.connectivity_matrix[i, j] = 1
+
+        # initialize the weights for each component
+        for i in range(self.nb_components):
+            self.components[i].initialize(nb_inputs=int(self.connectivity_matrix[i + self.nb_input].sum()),
+                                              idx=i)
+
+            # if the components is within the substrate structure's trainable
+            # parameters
+            # book space in track for the tracking of params of the internal components
+            self.nb_trainable += self.components[i].get_nb_trainable()
             
-            self.components[idx]
+            # register the trainable parameters name
+            param_values = self.components[i].get_trainable_names()
+                        
+            # set name
+            self.trainable_names += [f'c_{alphabet[k]}{i}' for k
+                                     in range(len(param_values))]
+            
+        # adjust 
+        self.nb_trainable = max((0, self.nb_trainable))
+                        
+        self.trainable_params = np.zeros(self.nb_trainable)  
         
+        # internals
+        self.internals = np.zeros(self.nb_output + self.nb_input)
+        
+        # var
+        self.activity = np.zeros(self.nb_input + self.nb_components)
+        self.output = np.zeros(self.nb_output)
+        
+        # 
+        self.initialization_flag = True
+        
+        
+        
+cell_dict = {'base': lambda dna, verbose: Cell(dna=dna, verbose=verbose),
+             'plasticity': lambda dna, verbose: CellPlasticity(dna=dna, verbose=verbose)}
     
 
 #### NETWORK ####

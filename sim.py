@@ -523,6 +523,11 @@ class TestMap:
 
         elif style == 'raster':
             
+            
+            self.plot_raster(show_target=show_target)
+            
+            return
+            
             if (self.stimuli_data['input']['kind'] == 'spike' or self.stimuli_data[
                     'input']['kind'] == 'spike_random') and (self.stimuli_data[
                         'target']['kind'] == 'spike' or self.stimuli_data[
@@ -568,6 +573,88 @@ class TestMap:
             plt.legend()
             plt.title('Stimulation raster plot')
             plt.show()
+    
+    def plot_raster(self, show_target=False, spikes=None):
+        
+        
+        nb, duration = self.inputs.shape
+        x = range(duration)
+        
+        
+        # check
+        if (self.stimuli_data['input']['kind'] == 'spike' or self.stimuli_data[
+                'input']['kind'] == 'spike_random') and (self.stimuli_data[
+                    'target']['kind'] == 'spike' or self.stimuli_data[
+                        'target']['kind'] == 'spike_random' or self.stimuli_data[
+                            'target']['kind'] == 'spike_decay'): 
+            pass
+        
+        else:
+            raise ValueError(f'input "{self.stimuli_data["input"]["kind"]}"'
+                             f' or target "{self.stimuli_data["target"]["kind"]}"' 
+                             ' not supported for plot style raster')
+
+        if show_target:
+            nb += len(self.targets)
+
+        if spikes is not None:
+            nb += len(spikes)
+
+        # prepare data
+        stimuli = np.zeros((nb, duration))
+        positions = np.ones((nb, duration))*-1
+        names = []
+        colors = []
+        j = 0
+        k = 0
+                
+        # input spikes
+        for i, row in enumerate(self.inputs):
+            for t, v in enumerate(row):
+                if v > 0:
+                    stimuli[i, t] = v
+                    positions[i, t] = 1.5 - (i + 1) / nb
+
+            names += [f'input {i + 1}']
+            colors += ['black']
+
+        # target spikes
+        if show_target:
+            for j, row in enumerate(self.targets):
+                for t, v in enumerate(row):
+                    if v > 0:
+                        stimuli[i + j + 1, t] = v
+                        positions[i + j + 1, t] = 1.5 - (i + j + 2) / nb
+    
+                names += [f'target {j + 1}']
+                colors += ['orange']
+            
+        # other spikes
+        if spikes is not None:
+            for k, row in enumerate(spikes):
+                for t, v in enumerate(row):
+                    if v > 0:
+                        stimuli[i + j + k + 2, t] = v
+                        positions[i + j + k + 2, t] = 1.5 - (i + j + k + 3) / nb
+                        
+                names += [f'other {k+1}']
+                colors += ['green']
+
+        # raster
+        for l, stimulus in enumerate(stimuli):
+            # plt.subplot(nb, 1, k+1)
+            plt.plot(x, positions[l], 'o', color=colors[l], label=f'{names[l]}')
+            #plt.scatter(x, positions[l], c=stimulus, cmap=colors[l])
+            #plt.scatter(duration + 100, positions[l, -1], c=0., cmap=colors[l], label=f'{names[l]}')
+        
+
+        plt.ylim((-0., 1.5))
+        plt.yticks(())
+        plt.xlabel('time [ms]')
+        plt.legend(loc='lower left')
+        plt.title('Stimulation raster plot')
+        plt.show()
+    
     
     def testing(self, candidate: object, verbose=False, 
                 return_obj=True, plotting=False):
@@ -705,7 +792,8 @@ class Gym(TestMap):
         # settings
         duration = self.inputs.shape[1]
         loss_flag = self.checklist['target']  # compute loss
-        backward_flag = self.substrate.is_trainable() * training  # backpropagate
+        trainable = self.substrate.is_trainable()
+        backward_flag = trainable * training  # backpropagate
 
         if verbose:
             print('\n### Simulation ###\n')
@@ -749,7 +837,10 @@ class Gym(TestMap):
                 # backward pass
                 if np.any(self.targets[:, ms] != 0) and backward_flag:
                     self.substrate.add_loss(backpropagated_loss=error)
-                    self.substrate.update()
+            
+            # trainable substrate
+            if trainable:
+                self.substrate.update()
 
             # record
             if plot_style is not None:
@@ -785,10 +876,14 @@ class Gym(TestMap):
                 plt.legend()
                 plt.title(f'Plot of the activity for {duration}ms')
                 plt.show()
+                
+            elif plot_style == 'raster':
+                self.plot_raster(show_target=0, spikes=activity[-nb_output:, :])
 
 
     def long_simulation(self, epochs=10, info_freq=1, plot_style=None, 
-                        verbose=True, training=False, rigenerate=False):
+                        verbose=True, training=False, rigenerate=False,
+                        early_stopping=True):
 
         """
         simulation of all the epochs of activity
@@ -817,7 +912,9 @@ class Gym(TestMap):
         # settings
         duration = self.inputs.shape[1]
         loss_flag = self.checklist['target']  # compute loss
-        backward_flag = self.substrate.is_trainable() * training  # backpropagate
+        trainable = self.substrate.is_trainable()
+        backward_flag = trainable * training  # backpropagate
+        
 
         if verbose:
             print('\n### Long Simulation ###\n')
@@ -851,7 +948,7 @@ class Gym(TestMap):
             print('\n--- start training ---')
 
         for epoch in range(epochs):
-            
+                        
             # new data
             if rigenerate:
                 self.rigenerate_data(new_input=1, new_target=1)
@@ -863,7 +960,8 @@ class Gym(TestMap):
                 print('\n', epoch,  '-'*33)
 
             for ms in range(duration):
-
+                
+                #print(ms, 'ms')
                 # collect input
                 self.substrate.collect_input(inputs=self.inputs[:, ms])
 
@@ -883,7 +981,10 @@ class Gym(TestMap):
                     # backward pass
                     if np.all(self.targets[:, ms] != 0) and backward_flag:
                         self.substrate.add_loss(backpropagated_loss=error)
-                        self.substrate.update()
+                
+                # trainable substrate
+                if trainable:
+                    self.substrate.update()
 
                 # record
                 if plot_style is not None and self.stimuli_data['input']['kind'] != 'classes':
@@ -912,7 +1013,8 @@ class Gym(TestMap):
                 if loss_flag:
                     print(f' - loss: {error.sum().item() ** 2:.4f}')
 
-                    done = (error.sum().item() ** 2) == 0
+                    if early_stopping:
+                        done = (error.sum().item() ** 2) == 0
 
             if done:
                 break
@@ -952,23 +1054,28 @@ class Gym(TestMap):
                     plt.legend()
                     plt.title(f'Plot of the activity for {duration}ms')
 
-                # metrics
-                plt.figure()
-                plt.subplot(nb_metrics, 1, 1)
-                plt.plot(range(epochs), metrics[0, :], '-r', label='loss')
-                plt.ylim((0, max(metrics[0, :])))
+            elif plot_style == 'raster':
+                
+                self.plot_raster(show_target=1, spikes=activity[-nb_output:, :])
+                
+                
+            # metrics
+            plt.figure()
+            plt.subplot(nb_metrics, 1, 1)
+            plt.plot(range(epochs), metrics[0, :], '-r', label='loss')
+            plt.ylim((0, max(metrics[0, :])))
+            plt.xlabel('epochs')
+            plt.legend(loc='upper right')
+            plt.title('Training metrics')
+
+            for n in range(nb_metrics - 1):
+                plt.subplot(nb_metrics, 1, n + 2)
+                plt.plot(range(epochs), metrics[n + 1, :], '-k',
+                         label=f'param "{trainable_names[n]}"')
                 plt.xlabel('epochs')
-                plt.legend(loc='upper right')
-                plt.title('Training metrics')
-
-                for n in range(nb_metrics - 1):
-                    plt.subplot(nb_metrics, 1, n + 2)
-                    plt.plot(range(epochs), metrics[n + 1, :], '-k',
-                             label=f'param "{trainable_names[n]}"')
-                    plt.xlabel('epochs')
-                    plt.legend(loc='upper right')
-
-                plt.show()
+                plt.legend(loc='upper right')                
+    
+        plt.show()
                 
     def test_substrate(self):
         
