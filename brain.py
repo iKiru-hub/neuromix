@@ -2762,10 +2762,6 @@ class ProteinPlasticitySTDP(ProteinPlasticity):
 
         self.traces = self.traces - self.traces / self.tau_tr + self.magnitudes * self.internals[:2]
         self.stdp = self.A_plus * self.traces[0] * self.internals[1] + self.A_minus * self.traces[1] * self.internals[0]
-        
-        if self.stdp != 0.:
-            print(self.stdp)
-            
 
         if self.trainable:
             #print('stdp ', self.lr * self.stdp, self.traces, self.internals)
@@ -2968,7 +2964,7 @@ class CellPlasticity(SubstrateStructure):
                 self.output[idx] = component.get_output()
                 
             # set plasticity variables
-            self.set_internals()
+            #self.set_internals()
 
             # reset inputs
             try:
@@ -2976,6 +2972,9 @@ class CellPlasticity(SubstrateStructure):
             except RuntimeWarning:
                 print('runtime warning: ', self.activity)
                 input()
+                
+        # output internal
+        self.internals[0] = self.output.item()
                 
             
     def update(self):
@@ -3013,6 +3012,21 @@ class CellPlasticity(SubstrateStructure):
         
         # reset
         self.back_loss *= 0
+        
+        
+    def collect_input(self, inputs: np.ndarray):
+        
+        """
+        receive and store the inputs
+        :param inputs: np.ndarray
+        :return: None
+        """
+
+        # external inputs
+        self.activity[:self.nb_input] = inputs
+        
+        # input internals
+        self.internals[1: 1 + self.nb_input] = self.activity[:self.nb_input]
         
     def set_internals(self):
         

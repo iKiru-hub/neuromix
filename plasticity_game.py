@@ -18,15 +18,15 @@ import time
 dna = ('Cell', {'variety': 'plasticity',
                 'components': [('Protein', {'variety': 'plasticity_stdp',
                                             'params': {'w': 1.,
-                                                       'A+': 1.,
-                                                       'A-': -1.1,
-                                                       'a+': 3,
-                                                       'a-': 3,
-                                                       'tau_tr': 500,
-                                                       'tau_stdp': 600
+                                                       'A+': 0.4,
+                                                       'A-': -0.4,
+                                                       'a+': 0.3,
+                                                       'a-': 0.3,
+                                                       'tau_tr': 400,
+                                                       'tau_stdp': 400
                                                        },
                                             'more': {'trainable_params': ['w'],
-                                                     'lr': 1,
+                                                     'lr': 0.1,
                                                      'variables': ['input', 
                                                                    'output']
                                                      }
@@ -34,15 +34,15 @@ dna = ('Cell', {'variety': 'plasticity',
                                 ),
                                ('Protein', {'variety': 'plasticity_stdp',
                                             'params': {'w': 1.,
-                                                       'A+': 1.,
-                                                       'A-': -1.1,
-                                                       'a+': 3,
-                                                       'a-': 3,
-                                                       'tau_tr': 500,
-                                                       'tau_stdp': 600
+                                                       'A+': 0.4,
+                                                       'A-': -0.4,
+                                                       'a+': 0.3,
+                                                       'a-': 0.5,
+                                                       'tau_tr': 300,
+                                                       'tau_stdp': 300
                                                        },
                                             'more': {'trainable_params': ['w'],
-                                                     'lr': 1,
+                                                     'lr': 0.1,
                                                      'variables': ['input', 
                                                                    'output']
                                                      }
@@ -90,7 +90,7 @@ sub = mix.brain.generate_substrate(dna=dna)
 #%% gym
 
 in_functions = {'l': lambda x: 2e-4 * x + 0.4,
-                'nl': lambda x: (sin(x / 150) / 20 + 0.3 + 0.07* cos(x / 60)) * exp(-0.0003 * x)
+                'nl': lambda x: (sin(x / 150) / 20 + 0.3 + 0.07 * cos(x / 60)) * exp(-0.0003 * x)
                 }
 tr_function = {'l': lambda x: 1.5e-4 * x + 0.,
                'nl': lambda x: (sin(x / 100) / 10 + 0.8 + 0.1 * cos(x / 70)) * exp(-0.0004 * x)}
@@ -112,18 +112,6 @@ gym.add_substrate(substrate=sub)
 
 #%% short simulation
 #gym.simulation(plot_style='raster', verbose=True, training=0)
-
-
-#%%
-
-
-# for _ in range(100):
-#     time.sleep(0.01)
-#     sub = mix.brain.generate_substrate(dna=dna)
-#     gym.add_input(kind='spike', freq=[10], duration=1_000, nb=2,
-#                   function=in_functions['l'], nb_classes=5)
-#     gym.add_substrate(substrate=sub)
-#     gym.simulation(plot_style='spike', verbose=True, training=0)
 
 
 #%% training
