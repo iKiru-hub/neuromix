@@ -7,21 +7,21 @@ Created on Thu Sep 22 17:13:43 2022
 
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from matplotlib import style
 
 
 
 class Grapher:
     
+    """ provide graphical network functionalities  """
+    
+    
     def __init__(self, connections: list, nb_input: int, nb_output: int):
         
         """
-        draw a graph given a list of connections
         :param connections: list, list of tuples as [(pre, post)]
         :param nb_input: int, number of input nodes
         :param nb_output: int, number of output nodes
-        return None
+        return: None
         """
         
         self.nb_input = nb_input
@@ -38,26 +38,24 @@ class Grapher:
         self.fig = ""
         self.ax = ""
         self.pause_time = 1
-        # self.fig.canvas.manager.show()
         
     def initialize(self):
         
         """
         initialize figure variables
-        :return None
+        :return: None
         """
         
         self.fig = plt.figure(frameon=False)
         self.ax = self.fig.add_subplot(1, 1, 1)
         self.fig.canvas.manager.show()
         
-        
     def live_graph(self, activations: np.ndarray):
         
         """
         given the activations of the nodes, print them on the plot
         :param activations, ndarray
-        :return None
+        :return: None
         """
         
         # plt.figure(layout='constrained', frameon=0)
@@ -107,7 +105,7 @@ class Grapher:
         
         """
         draw a graph given a list of connections
-        return None
+        return: None
         """
         # plot #
         
@@ -132,8 +130,8 @@ class Grapher:
     def build(self):
         
         """
-        define the coordinates for each node
-        :return None
+        define the coordinates for each node of a network
+        :return: None
         """
         
         # x-axis
@@ -159,7 +157,7 @@ class Grapher:
         """
         set the pause time for the livestream graph
         :param new_time: float
-        :return None
+        :return: None
         """
         
         self.pause_time = new_time

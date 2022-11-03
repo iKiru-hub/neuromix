@@ -24,7 +24,8 @@ def generate_substrate(dna: tuple, verbose=True):
         substrate = cell_dict[dna[1]['variety']](dna=dna[1], verbose=verbose)
 
     else:
-        raise NotImplementedError(f'substrate <{substrate_name}> not supported for now')
+        raise NotImplementedError(f'substrate <{substrate_name}> not s'
+                                  'upported for now')
 
     return substrate
 
@@ -103,7 +104,8 @@ class SubstrateCore:
     def initialize(self, nb_inputs: int, idx: int):
 
         """
-        initialize the weights value and check the consistency if they are already initialized
+        initialize the weights value and check the consistency if 
+        they are already initialized
         :param nb_inputs: int, number of inputs
         :param idx: int, id of the component
         :return: None
@@ -356,7 +358,8 @@ class Substrate:
     def initialize(self, nb_inputs: int, idx: int):
 
         """
-        initialize the weights value and check the consistency if they are already initialized
+        initialize the weights value and check the consistency if 
+        they are already initialized
         :param nb_inputs: int, number of inputs
         :param idx: int, id of the component
         :return: None
@@ -539,7 +542,8 @@ class SubstrateStructureCore(SubstrateCore):
         if verbose:
             print('\n@SubstrateStructure', end='')
     
-            print(f'\nnb_components: {self.nb_components}\nnb_inputs: {self.nb_input}\nnb_outputs: {self.nb_output}'
+            print(f'\nnb_components: {self.nb_components}\nnb_inputs: '
+                  '{self.nb_input}\nnb_outputs: {self.nb_output}'
                   f'\nnb_trainable: {self.nb_trainable}')
             
     def step(self):
@@ -560,7 +564,8 @@ class SubstrateStructureCore(SubstrateCore):
             for i, component in enumerate(self.components):
 
                 # indexes of the inputs to component idx
-                inputs_j = np.where(self.connectivity_matrix[i + self.nb_input] != 0)[0]
+                inputs_j = np.where(self.connectivity_matrix[i + self.nb_input] \
+                                    != 0)[0]
 
                 if len(inputs_j) == 0:
                     continue
@@ -609,14 +614,16 @@ class SubstrateStructureCore(SubstrateCore):
 
         # general keys
         keys = tuple(self.DNA.keys())
-        if not keys.__contains__('components') or not keys.__contains__('connections') or \
+        if not keys.__contains__('components') or \
+            not keys.__contains__('connections') or \
                 not keys.__contains__('attributes') or not keys.__contains__('more'):
 
             raise ValueError('DNA does not contain one or more requires general keys')
 
         # <more> keys
         more_keys = tuple(self.DNA['more'])
-        if not more_keys.__contains__('nb_in') or not more_keys.__contains__('nb_out') or \
+        if not more_keys.__contains__('nb_in') or \
+            not more_keys.__contains__('nb_out') or \
                 not more_keys.__contains__('cycles'):
 
             raise ValueError('DNA does not contain one or more required <more> keys')
@@ -653,7 +660,8 @@ class SubstrateStructureCore(SubstrateCore):
             protein = generate_substrate(dna=protein_gene, verbose=self.verbose)
             self.components += [protein]
 
-            self.trainable_components += [idx] * int(protein_gene[1]['more']['trainable_params'].__len__() > 0)
+            self.trainable_components += [idx] * int(protein_gene[1]['more']\
+                                        ['trainable_params'].__len__() > 0)
 
         # trainable
         self.trainable = self.trainable_components.__len__() > 0
@@ -667,7 +675,8 @@ class SubstrateStructureCore(SubstrateCore):
         # build a connectivity matrix
         self.connectivity_matrix = np.zeros((tot, tot))
 
-        # NB: the number of external inputs shall be considered; e.g. one input has index 0
+        # NB: the number of external inputs shall be considered; 
+        # e.g. one input has index 0
         for j, i in dna_connections:
             if i >= tot:
                 raise ValueError(f'source index {i} is too big')
@@ -677,8 +686,8 @@ class SubstrateStructureCore(SubstrateCore):
 
         # initialize the weights for each component
         for i in range(self.nb_components):
-            self.components[i].initialize(nb_inputs=int(self.connectivity_matrix[i + self.nb_input].sum()),
-                                              idx=i)
+            self.components[i].initialize(nb_inputs=int(
+                self.connectivity_matrix[i + self.nb_input].sum()), idx=i)
 
             # if the components is within the substrate structure's trainable
             # parameters
@@ -717,7 +726,7 @@ class SubstrateStructureCore(SubstrateCore):
     def get_output(self):
 
         """
-        :return float
+        :return: float
         """
 
         return self.output
@@ -725,7 +734,7 @@ class SubstrateStructureCore(SubstrateCore):
     def get_activity(self):
         
         """
-        :return ndarray
+        :return: ndarray
         """
         
         return self.activity
@@ -733,7 +742,7 @@ class SubstrateStructureCore(SubstrateCore):
     def get_nb_output(self):
 
         """
-        :return int, number of outputs provided
+        :return: int, number of outputs provided
         """
 
         return self.nb_output
@@ -741,7 +750,7 @@ class SubstrateStructureCore(SubstrateCore):
     def get_connections(self):
         
         """
-        :return list, connections
+        :return: list, connections
         """
         
         return self.connections
@@ -749,7 +758,7 @@ class SubstrateStructureCore(SubstrateCore):
     def get_nb_inout(self):
         
         """
-        :return tuple, number of input and output components
+        :return: tuple, number of input and output components
         """
         
         return self.nb_input, self.nb_output
@@ -759,7 +768,7 @@ class SubstrateStructureCore(SubstrateCore):
         """
         set the state of the livestream
         :param state: bool,
-        :return None
+        :return: None
         """
         
         self.livestream = state
@@ -772,7 +781,7 @@ class SubstrateStructureCore(SubstrateCore):
         
         """
         add a mix.tools.Grapher object to live stream the activiy
-        :return None
+        :return: None
         """
         
         self.grapher = Grapher(connections=self.connections,
@@ -783,7 +792,7 @@ class SubstrateStructureCore(SubstrateCore):
         
         """
         plot the graph of connections if a grapher object has been added
-        :return None
+        :return: None
         """
         
         if not self.grapher:
@@ -796,7 +805,7 @@ class SubstrateStructureCore(SubstrateCore):
     def get_grapher(self):
         
         """
-        :return object, Grapher object with its graph data relative to this
+        :return: object, Grapher object with its graph data relative to this
         substrate structure; return False if no grapher has been addedd
         """
         
@@ -807,396 +816,7 @@ class SubstrateStructureCore(SubstrateCore):
     def get_substrate_name():
 
         """
-        :return str
-        """
-
-        return 'SubstrateStructure'
-    
-    def reset(self):
-
-        """
-        reset the value of the variables [to edit]
-        :return: None
-        """
-
-        self.inputs *= 0
-        self.activity *= 0.
-        
-        for i in range(self.nb_components):
-            self.components[i].reset()
-        
-    
-    """
-    base SubstrateStructure class, a Substrate object with the particularity
-    of having a structure made of more elementary substrates, its
-    components, which made up the internal dynamics (and input-output) of the 
-    object through pre-defined connections 
-    """
-
-    def __init__(self, dna: dict, verbose=True):
-
-        """
-        :param dna: dict
-        """
-
-        # set up
-        super().__init__(dna=dna)
-        
-        
-        self.trainable_components = []
-        
-        if verbose:
-            print('\n@SubstrateStructure', end='')
-            if self.trainable:
-                print(' [trainable]')
-            else:
-                print()
-    
-            print(f'\nnb_components: {self.nb_components}\nnb_inputs: {self.nb_input}\nnb_outputs: {self.nb_output}'
-                  f'\nnb_trainable: {self.nb_trainable}')
-            
-    def step(self):
-
-        """
-        the internal components of the cell have their state updated
-        :return: None
-        """
-
-        for cycle in range(self.cycles):
-
-            # get the activity of each component, input to its downstream neighbours
-            for idx, component in enumerate(self.components):
-                self.activity[self.nb_input + idx] = component.get_output()
-
-            # each component loads the inputs from its inputs sources + each component steps
-            # print('\n-load and step-')
-            for i, component in enumerate(self.components):
-
-                # indexes of the inputs to component idx
-                inputs_j = np.where(self.connectivity_matrix[i + self.nb_input] != 0)[0]
-
-                if len(inputs_j) == 0:
-                    continue
-
-                # load
-                self.components[i].collect_input(inputs=self.activity.take(inputs_j).T)
-
-                # step
-                self.components[i].step()
-                
-                
-                # live graph
-                if self.grapher and self.livestream:
-                        
-                    self.grapher.live_graph(activations=self.activity)
-                
-
-            # define the input as the activity of the output components
-            for idx, component in enumerate(self.components[-self.nb_output:]):
-                self.output[idx] = component.get_output()
-
-            # reset inputs
-            try:
-                self.activity *= 0
-            except RuntimeWarning:
-                print('runtime warning: ', self.activity)
-                input()
-
-    def update(self):
-
-        """
-        the trainable parameters are updated [to edit]
-        :return: None
-        """
-
-        if self.back_loss.sum() == 0:
-            return
-
-        # loss at the output nodes
-        for k in range(self.nb_output):
-            self.components[-k-1].add_loss(backpropagated_loss=self.back_loss[k])
-
-        # BACKPROPAGATION #
-        # starting from the output nodes, loop over all the components
-        for i in range(self.nb_components - 1, 0, - 1):
-
-            loss_i = self.components[i].get_loss()[0]
-
-            # loop over the input nodes to i and add its loss
-            for k, j in enumerate(np.where(self.connectivity_matrix[i + self.nb_input] == 1)[0]):
-                self.components[j - self.nb_input].add_loss(backpropagated_loss=loss_i[k])  # indexed at j
-
-        # parameter update
-        for idx in range(self.nb_components):
-            self.components[idx].update()
-        
-        # reset
-        self.back_loss *= 0
-
-
-    def collect_input(self, inputs: np.ndarray):
-        """
-        receive and store the inputs
-        :param inputs: np.ndarray
-        :return: None
-        """
-
-        # external inputs
-        self.activity[:self.nb_input] = inputs
-
-    def check_dna(self):
-
-        """
-        check if the DNA contains the right keys
-        :return: None
-        """
-
-        # general keys
-        keys = tuple(self.DNA.keys())
-        if not keys.__contains__('components') or not keys.__contains__('connections') or \
-                not keys.__contains__('attributes') or not keys.__contains__('more'):
-
-            raise ValueError('DNA does not contain one or more requires general keys')
-
-        # <more> keys
-        more_keys = tuple(self.DNA['more'])
-        if not more_keys.__contains__('nb_in') or not more_keys.__contains__('nb_out') or \
-                not more_keys.__contains__('cycles'):
-
-            raise ValueError('DNA does not contain one or more required <more> keys')
-
-        # warning
-        if self.DNA['components'].__len__() == 0:
-            warnings.warn('Empty Structure: no components detected')
-
-        if self.DNA['connections'].__len__() == 0:
-            warnings.warn('Disconnected components: no connections detected')
-
-        if self.DNA['more']['nb_in'] == 0:
-            warnings.warn('Autonomous Structure: zero inputs specified')
-
-        if self.DNA['more']['nb_out'] == 0:
-            warnings.warn('Isolated Structure: zero outputs specified')
-
-    def build_structure(self):
-
-        """
-        create each component from the DNA and store them in a list
-        :return: None
-        """
-        
-        # alphabet for the paramters name
-        alphabet = ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'l', 'k')
-
-        # list of components and connections
-        dna_components = self.DNA['components']
-        dna_connections = self.DNA['connections']
-
-        # create each component
-        for idx, protein_gene in enumerate(dna_components):
-            protein = generate_substrate(dna=protein_gene, verbose=self.verbose)
-            self.components += [protein]
-
-            self.trainable_components += [idx] * int(protein_gene[1]['more']['trainable_params'].__len__() > 0)
-
-        # trainable
-        self.trainable = self.trainable_components.__len__() > 0
-
-        # number of inputs and components
-        self.nb_input = self.DNA['more']['nb_in']  # inputs
-        self.nb_output = self.DNA['more']['nb_out']
-        self.nb_components = len(self.components)  # components
-        tot = len(self.components) + self.nb_input   # total
-
-        # build a connectivity matrix
-        self.connectivity_matrix = np.zeros((tot, tot))
-
-        # NB: the number of external inputs shall be considered; e.g. one input has index 0
-        for j, i in dna_connections:
-            if i >= tot:
-                raise ValueError(f'source index {i} is too big')
-            if j >= tot:
-                raise ValueError(f'sink index {j} is too big')
-            self.connectivity_matrix[i, j] = 1
-
-        # initialize the weights for each component
-        for i in range(self.nb_components):
-            self.components[i].initialize(nb_inputs=int(self.connectivity_matrix[i + self.nb_input].sum()),
-                                              idx=i)
-
-            # if the components is within the substrate structure's trainable
-            # parameters
-            # book space in track for the tracking of params of the internal components
-            self.nb_trainable += self.components[i].get_nb_trainable()
-            
-            # register the trainable parameters name
-            param_values = self.components[i].get_trainable_names()
-        
-            # set name
-            self.trainable_names += [f'c_{alphabet[k]}{i}' for k
-                                     in range(len(param_values))]
-            
-        # adjust 
-        self.nb_trainable = max((0, self.nb_trainable))
-            
-        # define param names #
-        # loop over the component to get the parameters from
-        """for i, param_name in enumerate(self.trainable_params):
-            
-            # component params, check if the params is within the trainable parameters
-            if param_name[0] == f'c{i+1}':
-                param_idx = int(param_name[1:]) 
-                param_values = self.components[param_idx].get_trainable_params()
-            
-                # set name
-                self.trainable_names += [param_name + f'_{alphabet[k]}' for k
-                                         in range(len(param_values))]
-                
-            else:
-            
-            self.trainable_names += [param_name]"""
-            
-        self.trainable_params = np.zeros(self.nb_trainable)    
-
-    def get_output(self):
-
-        """
-        :return float
-        """
-
-        return self.output
-    
-    def get_activity(self):
-        
-        """
-        :return ndarray
-        """
-        
-        return self.activity
-
-    def get_trainable_params(self):
-
-        """
-        :return: ndarray shape=(nb_trainable,)
-        """
-        
-        base_idx = 0
-        
-        # loop over the component to get the parameters from
-        for idx in self.trainable_components:
-
-            param_values = self.components[idx].get_trainable_params()
-                            
-            # store
-            self.trainable_params[base_idx: base_idx + len(param_values)] = param_values
-            base_idx += len(param_values)
-
-                
-
-        return self.trainable_params
-
-    def get_trainable_names(self):
-
-        """
-        :return: list, names of the trainable parameters
-        """
-
-        return self.trainable_names
-
-    def is_trainable(self):
-
-        """
-        :return: bool, trainable molecule or not
-        """
-
-        return self.trainable
-    
-    def get_nb_trainable(self):
-        
-        """
-        :return int, numebr of trainable parameters
-        """
-        
-        return self.nb_trainable
-
-    def get_nb_output(self):
-
-        """
-        :return int, number of outputs provided
-        """
-
-        return self.nb_output
-    
-    def get_connections(self):
-        
-        """
-        :return list, connections
-        """
-        
-        return self.connections
-        
-    def get_nb_inout(self):
-        
-        """
-        :return tuple, number of input and output components
-        """
-        
-        return self.nb_input, self.nb_output
-    
-    def set_livestream(self, state=False):
-        
-        """
-        set the state of the livestream
-        :param state: bool,
-        :return None
-        """
-        
-        self.livestream = state
-        
-        # initialize
-        if self.grapher and self.livestream:
-            self.grapher.initialize()
-    
-    def add_grapher(self):
-        
-        """
-        add a mix.tools.Grapher object to live stream the activiy
-        :return None
-        """
-        
-        self.grapher = Grapher(connections=self.connections,
-                               nb_input=self.nb_input,
-                               nb_output=self.nb_output)
-        
-    def show_graph(self):
-        
-        """
-        plot the graph of connections if a grapher object has been added
-        :return None
-        """
-        
-        if not self.grapher:
-            warnings.warn("no grapher object has been added, no plot generated")
-            return
-        
-        self.grapher.draw_graph()
-        
-        
-    def get_grapher(self):
-        
-        """
-        :return object, Grapher object with its graph data relative to this
-        substrate structure; return False if no grapher has been addedd
-        """
-        
-        return self.grapher
-        
-
-    @staticmethod
-    def get_substrate_name():
-
-        """
-        :return str
+        :return: str
         """
 
         return 'SubstrateStructure'
@@ -1217,17 +837,19 @@ class SubstrateStructureCore(SubstrateCore):
         
 class SubstrateStructure(Substrate):
     
-    """
-    base SubstrateStructure class, a Substrate object with the particularity
-    of having a structure made of more elementary substrates, its
-    components, which made up the internal dynamics (and input-output) of the 
-    object through pre-defined connections 
+    """ base SubstrateStructure class
+    
+    a Substrate object having a structure made of more elementary substrates, 
+    its components, which made up the internal dynamics (and input-output) of 
+    the object through pre-defined connections 
     """
 
     def __init__(self, dna: dict, verbose=False):
 
         """
         :param dna: dict
+        :param verbose: bool
+        :return: None
         """
         
         # set up
@@ -1264,7 +886,8 @@ class SubstrateStructure(Substrate):
             else:
                 print()
     
-            print(f'\nnb_components: {self.nb_components}\nnb_inputs: {self.nb_input}\nnb_outputs: {self.nb_output}'
+            print(f'\nnb_components: {self.nb_components}\nnb_inputs: '
+                  '{self.nb_input}\nnb_outputs: {self.nb_output}'
                   f'\nnb_trainable: {self.nb_trainable}')
             
     def step(self):
@@ -1280,18 +903,21 @@ class SubstrateStructure(Substrate):
             for idx, component in enumerate(self.components):
                 self.activity[self.nb_input + idx] = component.get_output()
 
-            # each component loads the inputs from its inputs sources + each component steps
+            # each component loads the inputs from its 
+            # inputs sources + each component steps
             # print('\n-load and step-')
             for i in range(self.nb_components):
 
                 # indexes of the inputs to component idx
-                inputs_j = np.where(self.connectivity_matrix[i + self.nb_input] != 0)[0]
+                inputs_j = np.where(self.connectivity_matrix[i + self.nb_input] \
+                                    != 0)[0]
 
                 if len(inputs_j) == 0:
                     continue
 
                 # load
-                self.components[i].collect_input(inputs=self.activity.take(inputs_j).T)
+                self.components[i].collect_input(
+                    inputs=self.activity.take(inputs_j).T)
 
                 # step
                 self.components[i].step()
@@ -1335,7 +961,8 @@ class SubstrateStructure(Substrate):
             loss_i = self.components[i].get_loss()[0]
 
             # loop over the input nodes to i and add its loss
-            for k, j in enumerate(np.where(self.connectivity_matrix[i + self.nb_input] == 1)[0]):
+            for k, j in enumerate(np.where(self.connectivity_matrix[i + \
+                                                    self.nb_input] == 1)[0]):
                 self.components[j - self.nb_input].add_loss(backpropagated_loss=loss_i[k])  # indexed at j
 
         # parameter update
@@ -1366,17 +993,20 @@ class SubstrateStructure(Substrate):
 
         # general keys
         keys = tuple(self.DNA.keys())
-        if not keys.__contains__('components') or not keys.__contains__('connections') or \
-                not keys.__contains__('params') or not keys.__contains__('more'):
+        if not keys.__contains__('components') or \
+            not keys.__contains__('connections') or \
+            not keys.__contains__('params') or not keys.__contains__('more'):
 
-            raise ValueError(f'{self.substrate_name + self.substrate_type} - DDNA does not contain one or more required general keys')
+            raise ValueError(f'{self.substrate_name + self.substrate_type} - '
+                'DNA does not contain one or more required general keys')
 
         # <more> keys
         more_keys = tuple(self.DNA['more'])
         if not more_keys.__contains__('nb_in') or not more_keys.__contains__('nb_out') or \
                 not more_keys.__contains__('cycles'):
 
-            raise ValueError(f'{self.substrate_name + self.substrate_type} - DDNA does not contain one or more required <more> keys')
+            raise ValueError(f'{self.substrate_name + self.substrate_type} - '
+                    'DNA does not contain one or more required <more> keys')
 
         # warning
         if self.DNA['components'].__len__() == 0:
@@ -1393,10 +1023,12 @@ class SubstrateStructure(Substrate):
 
 
     def build_structure(self):
+        
         """
         create each component from the DNA and store them in a list
         :return: None
         """
+        
         # alphabet for the paramters name
         alphabet = ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'l', 'k')
 
@@ -1410,7 +1042,8 @@ class SubstrateStructure(Substrate):
             self.components += [protein]
 
             if 'more' in tuple(protein_gene[1].keys()):
-                self.trainable_components += [idx] * int(protein_gene[1]['more']['trainable_params'].__len__() > 0)
+                self.trainable_components += [idx] * int(protein_gene[1][
+                    'more']['trainable_params'].__len__() > 0)
 
         # trainable
         self.trainable = self.trainable_components.__len__() > 0
@@ -1424,7 +1057,8 @@ class SubstrateStructure(Substrate):
         # build a connectivity matrix
         self.connectivity_matrix = np.zeros((tot, tot))
 
-        # NB: the number of external inputs shall be considered; e.g. one input has index 0
+        # NB: the number of external inputs shall be considered; 
+        # e.g. one input has index 0
         for j, i in dna_connections:
             if i >= tot:
                 raise ValueError(f'source index {i} is too big')
@@ -1434,8 +1068,8 @@ class SubstrateStructure(Substrate):
 
         # initialize the weights for each component
         for i in range(self.nb_components):
-            self.components[i].initialize(nb_inputs=int(self.connectivity_matrix[i + self.nb_input].sum()),
-                                              idx=i)
+            self.components[i].initialize(nb_inputs=int(
+                self.connectivity_matrix[i + self.nb_input].sum()), idx=i)
 
             # if the components is within the substrate structure's trainable
             # parameters
@@ -1464,7 +1098,7 @@ class SubstrateStructure(Substrate):
     def get_output(self):
 
         """
-        :return float
+        :return: float
         """
 
         return self.output
@@ -1472,7 +1106,7 @@ class SubstrateStructure(Substrate):
     def get_activity(self):
         
         """
-        :return ndarray
+        :return: ndarray
         """
         
         return self.activity
@@ -1491,7 +1125,8 @@ class SubstrateStructure(Substrate):
             param_values = self.components[idx].get_trainable_params()
                             
             # store
-            self.trainable_params[base_idx: base_idx + len(param_values)] = param_values
+            self.trainable_params[base_idx: base_idx + 
+                                  len(param_values)] = param_values
             base_idx += len(param_values)
 
                 
@@ -1517,7 +1152,7 @@ class SubstrateStructure(Substrate):
     def get_nb_trainable(self):
         
         """
-        :return int, numebr of trainable parameters
+        :return: int, numebr of trainable parameters
         """
         
         return self.nb_trainable
@@ -1525,7 +1160,7 @@ class SubstrateStructure(Substrate):
     def get_nb_output(self):
 
         """
-        :return int, number of outputs provided
+        :return: int, number of outputs provided
         """
 
         return self.nb_output
@@ -1533,7 +1168,7 @@ class SubstrateStructure(Substrate):
     def get_connections(self):
         
         """
-        :return list, connections
+        :return: list, connections
         """
         
         return self.connections
@@ -1541,7 +1176,7 @@ class SubstrateStructure(Substrate):
     def get_nb_inout(self):
         
         """
-        :return tuple, number of input and output components
+        :return: tuple, number of input and output components
         """
         
         return self.nb_input, self.nb_output
@@ -1551,7 +1186,7 @@ class SubstrateStructure(Substrate):
         """
         set the state of the livestream
         :param state: bool,
-        :return None
+        :return: None
         """
         
         self.livestream = state
@@ -1564,7 +1199,7 @@ class SubstrateStructure(Substrate):
         
         """
         add a mix.tools.Grapher object to live stream the activiy
-        :return None
+        :return: None
         """
         
         self.grapher = Grapher(connections=self.connections,
@@ -1575,7 +1210,7 @@ class SubstrateStructure(Substrate):
         
         """
         plot the graph of connections if a grapher object has been added
-        :return None
+        :return: None
         """
         
         if not self.grapher:
@@ -1588,7 +1223,7 @@ class SubstrateStructure(Substrate):
     def get_grapher(self):
         
         """
-        :return object, Grapher object with its graph data relative to this
+        :return: object, Grapher object with its graph data relative to this
         substrate structure; return False if no grapher has been addedd
         """
         
@@ -1613,14 +1248,19 @@ class SubstrateStructure(Substrate):
 
 class Protein(Substrate):
 
-    """
-    base Protein class
+    """ base Protein class
+    
+    it serves as superclass for all Proteins, the building blocks of Structures
+    and possessing clearly defined dynamics, whose parameters are trainable
+    with gradient descent [and genetic algorithms]
     """
 
     def __init__(self, dna: dict, verbose=False):
 
         """
         :param dna: dict
+        :param verbose: bool
+        :return: None
         """
 
         # set up
@@ -1633,7 +1273,8 @@ class Protein(Substrate):
         # if weights already defined in the DNA, use those
         if 'params' in tuple(self.DNA.keys()):
             if 'w' in tuple(self.DNA['params'].keys()):
-                self.weights = np.array(self.DNA['params']['w']).reshape(1, -1).astype(float)
+                self.weights = np.array(self.DNA['params']['w']).reshape(1, \
+                                                            -1).astype(float)
 
         # variables
         self.z = 0.
@@ -1653,7 +1294,8 @@ class Protein(Substrate):
     def initialize(self, nb_inputs: int, idx: int):
 
         """
-        initialize the weights value and check the consistency if they are already initialized
+        initialize the weights value and check the consistency if they are 
+        already initialized
         :param nb_inputs: int, number of inputs
         :param idx: int, id of the component
         :return: None
@@ -1665,17 +1307,23 @@ class Protein(Substrate):
 
         # weights not initialized yet -> create and record
         if not isinstance(self.weights, np.ndarray):
-            self.weights = np.abs(np.random.normal(1, 1 / np.sqrt(nb_inputs + 1), (1, nb_inputs)))
+            self.weights = np.abs(np.random.normal(1, 1 / np.sqrt(nb_inputs \
+                                                    + 1), (1, nb_inputs)))
 
         # weights already initialized, check
         elif self.weights.shape[1] != nb_inputs:
-            raise ValueError(f'{self.substrate_name + self.substrate_type} - weights of shape {self.weights.shape} do not match the number of inputs [{nb_inputs:d}]')
+            raise ValueError(f'{self.substrate_name + self.substrate_type} - '
+                             'weights of shape {self.weights.shape} do not '
+                             'match the number of inputs [{nb_inputs:d}]')
 
-        # if the weights are trainable, then update the trainable record adjusting for the number of inputs
+        # if the weights are trainable, then update the trainable record 
+        # adjusting for the number of inputs
         if 'w' in self.DNA['more']['trainable_params']:
 
             self.nb_trainable = self.nb_input
-            self.trainable_params = np.zeros(self.nb_trainable)  # number of weights + one bias
+            
+            # number of weights + one bias
+            self.trainable_params = np.zeros(self.nb_trainable)  
 
             # weights
             self.trainable_names = [f'w{i + 1}' for i in range(nb_inputs)]
@@ -1731,8 +1379,9 @@ class Protein(Substrate):
 
 class ProteinExpBeta(Protein):
 
-    """
-    a Molecule that takes an input and returns an output by using a specific activity kernel
+    """ a Protein subclass 
+    
+    it is built with an activity kernel using en exponential and beta function
     """
 
     def __init__(self, dna: dict, verbose=True):     
@@ -1774,7 +1423,8 @@ class ProteinExpBeta(Protein):
             self.z = self.z + (self.Eq - self.z) / self.tau
 
             # activation
-            self.a = (self.z ** (self.alpha - 1)) * ((1 - self.z) ** (self.beta - 1)) * 11
+            self.a = (self.z ** (self.alpha - 1)) * ((1 - self.z) ** \
+                                                     (self.beta - 1)) * 11
 
     def backward(self, error: np.ndarray):
 
@@ -1788,8 +1438,9 @@ class ProteinExpBeta(Protein):
             return
 
         if 'tau' in self.trainable_params:
-            self.tau += self.lr * error * ((self.alpha - 1) * (self.z ** (self.alpha - 2) *
-                                            self.beta - 1) * ((1 - self.z) ** (self.beta - 2))) * (self.Eq - self.z)
+            self.tau += self.lr * error * ((self.alpha - 1) * (self.z ** (
+                self.alpha - 2) * self.beta - 1) * ((1 - self.z) ** (
+                    self.beta - 2))) * (self.Eq - self.z)
 
         if 'Eq' in self.trainable_params:
             self.Eq += self.lr * error / self.tau
@@ -1801,8 +1452,8 @@ class ProteinExpBeta(Protein):
             self.beta -= self.lr * error * (self.beta - 1) * self.a
 
         if 'w' in self.trainable_params:
-            self.w -= self.lr * error * ((self.alpha - 1) * (self.z ** (self.alpha - 2) *
-                                            self.beta - 1) * ((1 - self.z) ** (self.beta - 2))) * self.inputs
+            self.w -= self.lr * error * ((self.alpha - 1) * (self.z ** (
+                self.alpha - 2) * self.beta - 1) * ((1 - self.z) ** (self.beta - 2))) * self.inputs
 
     def check_dna(self):
 
@@ -1813,14 +1464,17 @@ class ProteinExpBeta(Protein):
 
         attributes_keys = tuple(self.DNA['params'].keys())
         more_keys = tuple(self.DNA['more'])
-        if not attributes_keys.__contains__('tau') or not attributes_keys.__contains__('Eq') or \
-                not attributes_keys.__contains__('alpha') or not attributes_keys.__contains__('beta') or \
+        if not attributes_keys.__contains__('tau') or not \
+            attributes_keys.__contains__('Eq') or \
+                not attributes_keys.__contains__('alpha') or \
+                    not attributes_keys.__contains__('beta') or \
                 not attributes_keys.__contains__('w') or \
                 not more_keys.__contains__('lr') or not more_keys.__contains__('trainable_params'):
 
             raise ValueError('DNA does not contain one or more required keys')
 
     def collect_input(self, inputs: np.ndarray):
+        
         """
         receive and store the inputs
         :param inputs: np.ndarray
@@ -1877,8 +1531,9 @@ class ProteinExpBeta(Protein):
 
 class ProteinExp(Protein):
 
-    """
-    a Molecule that takes an input and returns an output by exploiting exponential decay
+    """ a Protein subclass
+    
+    its activity relies on exponential decay
     """
 
     def __init__(self, dna: dict, verbose=True):
@@ -1923,14 +1578,15 @@ class ProteinExp(Protein):
         
         self.activity = self.activation(self.z)
         if self.verbose:
-            print(f'\n#\nx: {self.inputs}\nEq: {self.Eq}\nz: {self.z}\na: {self.activity}')
+            print(f'\n#\nx: {self.inputs}\nEq: {self.Eq}\nz: {self.z}\na: '
+                  '{self.activity}')
 
         self.ext_inputs *= 0
 
     def update(self):
 
         """
-        the trainable parameters are updated [to edit]
+        the trainable parameters are updated 
         :return: None
         """
         
@@ -1946,7 +1602,8 @@ class ProteinExp(Protein):
             self.tau -= self.lr * self.back_loss * (self.Eq - self.z)
             
             if self.verbose:
-                print(f'tau: {self.tau}\nbloss: {self.back_loss}\ngrad: {self.lr * self.back_loss * (self.Eq - self.z)}')
+                print(f'tau: {self.tau}\nbloss: {self.back_loss}\ngrad: '
+                      '{self.lr * self.back_loss * (self.Eq - self.z)}')
             
         if 'Eq' in self.trainable_names:
             self.Eq += self.lr * self.back_loss / self.tau
@@ -1955,6 +1612,7 @@ class ProteinExp(Protein):
         self.back_loss *= 0
             
     def add_loss(self, backpropagated_loss: float):
+        
         """
         record another loss value from back-propagated from downstream
         :param backpropagated_loss: float, external loss
@@ -1963,7 +1621,8 @@ class ProteinExp(Protein):
 
         self.back_loss += backpropagated_loss * self.activation_deriv(self.z)
         if self.verbose:
-            print(f'backprop loss={backpropagated_loss}\nact der={self.activation_deriv(self.z)} ')
+            print(f'backprop loss={backpropagated_loss}\nactivation '
+                  'derivative={self.activation_deriv(self.z)} ')
 
 
     def check_dna(self):
@@ -1974,9 +1633,11 @@ class ProteinExp(Protein):
         """
 
         attributes_keys = tuple(self.DNA['params'].keys())
-        if not attributes_keys.__contains__('tau') or not attributes_keys.__contains__('Eq'):
+        if not attributes_keys.__contains__('tau') or not \
+            attributes_keys.__contains__('Eq'):
 
-            raise ValueError(f'{self.substrate_name + self.substrate_type} - DDNA does not contain one or more required keys')
+            raise ValueError(f'{self.substrate_name + self.substrate_type} - '
+                             'DDNA does not contain one or more required keys')
                 
     
     def get_trainable_params(self):
@@ -2004,7 +1665,8 @@ class ProteinExp(Protein):
     def initialize(self, nb_inputs: int, idx: int):
 
         """
-        initialize the weights value and check the consistency if they are already initialized
+        initialize the weights value and check the consistency if they are 
+        already initialized
         :param nb_inputs: int, number of inputs
         :param idx: int, id of the component
         :return: None
@@ -2020,7 +1682,9 @@ class ProteinExp(Protein):
 
         # weights already initialized, check
         elif self.weights.shape[1] != nb_inputs:
-            raise ValueError(f'{self.substrate_name + self.substrate_type} - weights of shape {self.weights.shape} do not match the number of inputs [{nb_inputs:d}]')
+            raise ValueError(f'{self.substrate_name + self.substrate_type} - '
+                             'weights of shape {self.weights.shape} do not '
+                             'match the number of inputs [{nb_inputs:d}]')
 
         # if the weights are trainable, then update the trainable record adjusting for the number of inputs
         if 'w' in self.DNA['more']['trainable_params']:
@@ -2066,8 +1730,9 @@ class ProteinExp(Protein):
 
 class ProteinBase(Protein):
 
-    """
-    a Protein designed as an artificial neuron
+    """ a Protein subclass
+    
+    it is designed as an artificial neuron : W • x + b
     """
 
     def __init__(self, dna: dict, verbose=False):
@@ -2107,7 +1772,10 @@ class ProteinBase(Protein):
         """
 
         self.z = np.dot(self.weights, self.ext_inputs) + self.bias
-        self.activity = self.activation(self.z) * int(np.any(self.ext_inputs != 0))  # dont step if absent inputs
+        
+        # dont step if absent inputs
+        self.activity = self.activation(self.z) * int(np.any(
+                                                        self.ext_inputs != 0)) 
        
     def update(self):
 
@@ -2155,7 +1823,8 @@ class ProteinBase(Protein):
     def initialize(self, nb_inputs: int, idx: int):
 
         """
-        initialize the weights value and check the consistency if they are already initialized
+        initialize the weights value and check the consistency if they are 
+        already initialized
         :param nb_inputs: int, number of inputs
         :param idx: int, id of the component
         :return: None
@@ -2167,17 +1836,24 @@ class ProteinBase(Protein):
 
         # weights not initialized yet -> create and record
         if not isinstance(self.weights, np.ndarray):
-            self.weights = np.abs(np.random.normal(1, 1 / np.sqrt(nb_inputs + 1), (1, nb_inputs)))
+            self.weights = np.abs(np.random.normal(1, 
+                                                   1 / np.sqrt(nb_inputs + 1), 
+                                                   (1, nb_inputs)))
 
         # weights already initialized, check
         elif self.weights.shape[1] != nb_inputs:
-            raise ValueError(f'{self.substrate_name + self.substrate_type} - weights of shape {self.weights.shape} do not match the number of inputs [{nb_inputs:d}]')
+            raise ValueError(f'{self.substrate_name + self.substrate_type} - '
+                             'weights of shape {self.weights.shape} do not '
+                             'match the number of inputs [{nb_inputs:d}]')
 
-        # if the weights are trainable, then update the trainable record adjusting for the number of inputs
+        # if the weights are trainable, then update the trainable record 
+        # adjusting for the number of inputs
         if 'w' in self.DNA['more']['trainable_params']:
                         
             self.nb_trainable = self.nb_input + 1
-            self.trainable_params = np.zeros(self.nb_trainable)  # number of weights + one bias
+            
+            # number of weights + one bias
+            self.trainable_params = np.zeros(self.nb_trainable)  
             
             # weights
             self.trainable_names = [f'w{i+1}' for i in range(nb_inputs)]
@@ -2209,8 +1885,10 @@ class ProteinBase(Protein):
 
 class ProteinCond(Protein):
 
-    """
-    a Molecule takes an input and returns an output by using a specific activity kernel
+    """ a Protein subclass
+    
+    its dynamics are specified by a conductance-based voltage,
+    its activity shape is a delayed onset and exponential decay
     """
 
     def __init__(self, dna: dict, verbose=False):
@@ -2253,13 +1931,16 @@ class ProteinCond(Protein):
         :return: None
         """
         
-        if np.isnan(self.z + (self.Eq - self.z) / self.tau + (self.Eq - self.z) / self.tau):
-            print('cond pre ', (self.Eq - self.z) / self.tau, (self.Eq - self.z) / self.tau, self.z, self.tau)
+        if np.isnan(self.z + (self.Eq - self.z) / self.tau + (self.Eq - \
+                                                        self.z) / self.tau):
+            print('cond pre ', (self.Eq - self.z) / self.tau, (self.Eq - \
+                                        self.z) / self.tau, self.z, self.tau)
             raise ValueError
         
         self.z += (self.Eq - self.z) / self.tau + (self.Eq - self.z) / self.tau
         if np.isnan(self.z):
-            print('cond ', self.activity, self.z, self.g, self.ext_inputs, self.weights, self.tau, self.taug)
+            print('cond ', self.activity, self.z, self.g, self.ext_inputs, \
+                  self.weights, self.tau, self.taug)
             print()
             raise ValueError
             
@@ -2306,10 +1987,13 @@ class ProteinCond(Protein):
         """
 
         attributes_keys = tuple(self.DNA['params'].keys())
-        if not attributes_keys.__contains__('tau') or not attributes_keys.__contains__('Eq') or \
-                not attributes_keys.__contains__('taug') or not attributes_keys.__contains__('Epeak'):
+        if not attributes_keys.__contains__('tau') \
+            or not attributes_keys.__contains__('Eq') or \
+                not attributes_keys.__contains__('taug') or \
+                    not attributes_keys.__contains__('Epeak'):
 
-            raise ValueError(f'{self.substrate_name + self.substrate_type} - DDNA does not contain one or more required keys')
+            raise ValueError(f'{self.substrate_name + self.substrate_type} - '
+                             'DDNA does not contain one or more required keys')
 
 
     def get_trainable_params(self):
@@ -2342,7 +2026,8 @@ class ProteinCond(Protein):
     def initialize(self, nb_inputs: int, idx: int):
 
         """
-        initialize the weights value and check the consistency if they are already initialized
+        initialize the weights value and check the consistency if they are 
+        already initialized
         :param nb_inputs: int, number of inputs
         :param idx: int, id of the component
         :return: None
@@ -2354,17 +2039,22 @@ class ProteinCond(Protein):
 
         # weights not initialized yet
         if not isinstance(self.weights, np.ndarray):
-            self.weights = np.abs(np.random.normal(1, 1 / np.sqrt(nb_inputs + 1), (1, nb_inputs)))
+            self.weights = np.abs(np.random.normal(1, 1 / np.sqrt(nb_inputs \
+                                                         + 1), (1, nb_inputs)))
 
         # weights already initialized, check
         elif self.weights.shape[1] != nb_inputs:
-            raise ValueError(f'{self.substrate_name + self.substrate_type} - weights of shape {self.weights.shape} do not match the number of inputs [{nb_inputs:d}]')
+            raise ValueError(f'{self.substrate_name + self.substrate_type} - '
+                             'weights of shape {self.weights.shape} do not match the number of inputs [{nb_inputs:d}]')
 
-        # if the weights are trainable, then update the trainable record adjusting for the number of inputs
+        # if the weights are trainable, then update the trainable record 
+        # adjusting for the number of inputs
         if 'w' in self.DNA['more']['trainable_params']:
             
             self.nb_trainable = self.nb_input + 1
-            self.trainable_params = np.zeros(self.nb_trainable)  # number of weights + one bias
+            
+            # number of weights
+            self.trainable_params = np.zeros(self.nb_trainable)  
             
             # weights
             self.trainable_names = [f'w{i+1}' for i in range(nb_inputs)]
@@ -2418,8 +2108,10 @@ class ProteinCond(Protein):
     
 class ProteinSpike(Protein):
 
-    """
-    a Molecule that takes a rate and returns a spike, if generated
+    """ a Protein subclass
+    
+    aits activity consists of a spike generator using a input in [0, 1] as 
+    probability parameter of a Binomial distribution
     """
 
     def __init__(self, dna: dict, verbose=True):
@@ -2459,9 +2151,11 @@ class ProteinSpike(Protein):
         """
 
         try:
-            self.activity = np.random.binomial(n=1, p=np.clip(self.ext_inputs, self.rate_base, 0.9))
+            self.activity = np.random.binomial(n=1, p=np.clip(self.ext_inputs, 
+                                                    self.rate_base, 0.9))
         except ValueError:
-            print('probability of ', np.clip(self.ext_inputs, self.rate_base, 0.9), self.ext_inputs, self.rate_base)
+            print('probability of ', np.clip(self.ext_inputs, self.rate_base,
+                                        0.9), self.ext_inputs, self.rate_base)
             raise ValueError
         
         self.ext_inputs *= 0
@@ -2491,7 +2185,8 @@ class ProteinSpike(Protein):
     def initialize(self, nb_inputs: int, idx: int):
 
         """
-        initialize the weights value and check the consistency if they are already initialized
+        initialize the weights value and check the consistency if they are 
+        already initialized
         :param nb_inputs: int, number of inputs
         :param idx: int, id of the component
         :return: None
@@ -2499,7 +2194,8 @@ class ProteinSpike(Protein):
         
         self.nb_input = nb_inputs
         if nb_inputs > 1:
-            raise ValueError(f'{self.substrate_name + self.substrate_type} - {nb_inputs} input rates number not valid')
+            raise ValueError(f'{self.substrate_name + self.substrate_type} - '
+                             '{nb_inputs} input rates number not valid')
         
         self.id = str(idx)
         self.ext_inputs = np.zeros((1, 1))
@@ -2519,6 +2215,12 @@ class ProteinSpike(Protein):
         
 
 class ProteinPoly(Protein):
+    
+    """ a Protein subclass
+    
+    its activity its specified by a polynomial kernel
+    
+    """
 
     def __init__(self, dna: dict, verbose=False):
 
@@ -2533,7 +2235,8 @@ class ProteinPoly(Protein):
         self.sign = 1 if self.Eq == 0 else -1
         self.Eq *= self.scale
 
-        # bool, if True the provided input is used [scaled] otherwise it is non-zero onset is used as delay,
+        # bool, if True the provided input is used [scaled] otherwise 
+        # it is non-zero onset is used as delay,
         # default False
         self.proper = self.DNA['more']['proper']
 
@@ -2552,7 +2255,8 @@ class ProteinPoly(Protein):
     def step(self):
 
         """
-        a non-zero input will trigger the start of a delay counter from the input onset,
+        a non-zero input will trigger the start of a delay counter from the 
+        input onset,
         a zero input will just make the delay counter make one timestep
         :return: None
         """
@@ -2574,8 +2278,8 @@ class ProteinPoly(Protein):
                 self.x += 1 * self.scale
 
         # state
-        self.z = np.clip(self.Eq + self.sign * np.clip(sum([w * (self.x ** i) for i, w in enumerate(self.W)]), 0, 1), 0,
-                         1)
+        self.z = np.clip(self.Eq + self.sign * np.clip(sum([w * (self.x ** i) 
+                                for i, w in enumerate(self.W)]), 0, 1), 0, 1)
 
     def backward(self, error: np.ndarray):
 
@@ -2606,9 +2310,11 @@ class ProteinPoly(Protein):
 
         attributes_keys = tuple(self.DNA['params'].keys())
         more_keys = tuple(self.DNA['more'])
-        if not attributes_keys.__contains__('W') or not attributes_keys.__contains__('Eq') or \
+        if not attributes_keys.__contains__('W') or \
+                not attributes_keys.__contains__('Eq') or \
                 not attributes_keys.__contains__('beta') or \
-                not more_keys.__contains__('lr') or not more_keys.__contains__('trainable_params') or\
+                not more_keys.__contains__('lr') or \
+                not more_keys.__contains__('trainable_params') or\
                 not attributes_keys.__contains__('proper'):
 
             raise ValueError('DNA does not contain one or more required keys')
@@ -2657,9 +2363,10 @@ class ProteinPoly(Protein):
 
 class ProteinPlasticity(Protein):
 
-    """
-    base class for Protein implementing a plasticity rule,
-    if this class is used, it implements a simple weighted input, and it is trained with the gradient
+    """ base class for Protein implementing a plasticity rule
+    
+    if this class is used, it implements a simple weighted input, 
+    and it is trained with gradient descent
     """
 
     def __init__(self, dna: dict, verbose=False):
@@ -2667,6 +2374,7 @@ class ProteinPlasticity(Protein):
         """
         :param dna: dict,
         :param verbose: bool
+        :return: None
         """
 
         # dna
@@ -2718,8 +2426,9 @@ class ProteinPlasticity(Protein):
 
 class ProteinPlasticitySTDP(ProteinPlasticity):
 
-    """
-    ProteinPlasticity implementing an STDP rule
+    """ a ProteinPlasticity subclass
+    
+    it implements an STDP rule
     """
 
     def __init__(self, dna: dict, verbose=False):
@@ -2727,6 +2436,7 @@ class ProteinPlasticitySTDP(ProteinPlasticity):
         """
         :param dna: dict,
         :param verbose: bool
+        :return: None
         """
 
         # dna
@@ -2736,12 +2446,14 @@ class ProteinPlasticitySTDP(ProteinPlasticity):
         # plasticity parameters
         self.A_plus = self.DNA['params']['A+']
         self.A_minus = self.DNA['params']['A-']
-        self.magnitudes = np.array([self.DNA['params']['a+'], self.DNA['params']['a-']])
+        self.magnitudes = np.array([self.DNA['params']['a+'], 
+                                    self.DNA['params']['a-']])
         self.tau_tr = self.DNA['params']['tau_tr']
         self.tau_stdp = self.DNA['params']['tau_stdp']
 
         # variable parameters
-        self.traces = np.zeros(2)  # <-------------------- for now considers only 1 input and 1 cell spike channel
+        # for now considers only 1 input and 1 cell spike channel
+        self.traces = np.zeros(2)  
 
         self.stdp = 0.
         
@@ -2760,17 +2472,20 @@ class ProteinPlasticitySTDP(ProteinPlasticity):
         :return: None
         """
 
-        self.traces = self.traces - self.traces / self.tau_tr + self.magnitudes * self.internals[:2]
-        self.stdp = self.A_plus * self.traces[0] * self.internals[1] + self.A_minus * self.traces[1] * self.internals[0]
+        self.traces = self.traces - self.traces / self.tau_tr + \
+            self.magnitudes * self.internals[:2]
+        self.stdp = self.A_plus * self.traces[0] * self.internals[1] \
+            + self.A_minus * self.traces[1] * self.internals[0]
 
         if self.trainable:
-            #print('stdp ', self.lr * self.stdp, self.traces, self.internals)
             self.weights = self.weights + self.lr * self.stdp
 
 
 class ProteinPlasticityReward(ProteinPlasticity):
-    """
-    ProteinPlasticity implementing an [dopamine] reward-based STDP rule
+    
+    """ a ProteinPlasticity subclass
+    
+    it implements a [dopamine] reward-based STDP rule
     """
 
     def __init__(self, dna: dict, verbose=False):
@@ -2778,6 +2493,7 @@ class ProteinPlasticityReward(ProteinPlasticity):
         """
         :param dna: dict,
         :param verbose: bool
+        :return: None
         """
 
         # dna
@@ -2787,15 +2503,17 @@ class ProteinPlasticityReward(ProteinPlasticity):
         # plasticity parameters
         self.A_plus = self.DNA['params']['A+']
         self.A_minus = self.DNA['params']['A-']
-        self.magnitudes = np.array([self.DNA['params']['a+'], self.DNA['params']['a-']])
+        self.magnitudes = np.array([self.DNA['params']['a+'], 
+                                    self.DNA['params']['a-']])
         self.magnitude_rew = self.DNA['params']['a_rew']
         self.tau_tr = self.DNA['params']['tau_tr']
         self.tau_stdp = self.DNA['params']['tau_stdp']
         self.tau_rew = self.DNA['params']['tau_re']
 
         # variable parameters
-        self.traces = np.zeros(2)   # <-------------------- for now considers only 1 input, 1 cell spike channel and
-                                    # 1 reward channel
+        # for now considers only 1 input, 1 cell spike channel and 1 reward 
+        self.traces = np.zeros(2)  
+                                
         self.trace_rew = 0.
         self.stdp = 0.
         
@@ -2809,7 +2527,7 @@ class ProteinPlasticityReward(ProteinPlasticity):
     def update(self):
 
         """
-        STDP step
+        reward STDP step
         :return: None
         """
 
@@ -2838,8 +2556,20 @@ protein_dict = {'exp': lambda dna, verbose: ProteinExp(dna=dna, verbose=verbose)
 
 
 class Cell(SubstrateStructure):
+    
+    """ a Structure subclass
+    
+    it implements a network of elementary Proteins component
+    
+    """
 
     def __init__(self, dna: dict, verbose=False):
+        
+        """
+        :param dna, dict
+        :param verbose, bool
+        :return: None
+        """
 
         # set up
         super().__init__(dna=dna)
@@ -2856,7 +2586,8 @@ class Cell(SubstrateStructure):
             else:
                 print()
     
-            print(f'\nnb_components: {self.nb_components}\nnb_inputs: {self.nb_input}\nnb_outputs: {self.nb_output}'
+            print(f'\nnb_components: {self.nb_components}\nnb_inputs: '
+                  f'{self.nb_input}\nnb_outputs: {self.nb_output}'
                   f'\nnb_trainable: {self.nb_trainable}')
 
 
@@ -2869,10 +2600,13 @@ class Cell(SubstrateStructure):
 
         # general keys
         keys = tuple(self.DNA.keys())
-        if not keys.__contains__('components') or not keys.__contains__('connections') or \
-                not keys.__contains__('params') or not keys.__contains__('more'):
+        if not keys.__contains__('components') or \
+                not keys.__contains__('connections') or \
+                not keys.__contains__('params') or \
+                not keys.__contains__('more'):
 
-            raise ValueError(f'{self.substrate_name + self.substrate_type} - DNA does not contain one or more required general keys')
+            raise ValueError(f'{self.substrate_name + self.substrate_type} - '
+                             'DNA does not contain one or more required general keys')
 
         # <more> keys
         more_keys = tuple(self.DNA['more'])
@@ -2897,8 +2631,9 @@ class Cell(SubstrateStructure):
     
 class CellPlasticity(SubstrateStructure):
     
-    """
-    Cell implementing one or more ProteinPlasticity
+    """ a Structure subclass,
+    
+    it is like a Cell.class but implementing one or more ProteinPlasticity
     """
     
     def __init__(self, dna: dict, verbose=False):
@@ -2920,7 +2655,8 @@ class CellPlasticity(SubstrateStructure):
             else:
                 print()
     
-            print(f'\nnb_components: {self.nb_components}\nnb_inputs: {self.nb_input}\nnb_outputs: {self.nb_output}'
+            print(f'\nnb_components: {self.nb_components}\nnb_inputs: '
+                  '{self.nb_input}\nnb_outputs: {self.nb_output}'
                   f'\nnb_trainable: {self.nb_trainable}')
             
     def step(self):
@@ -2936,18 +2672,20 @@ class CellPlasticity(SubstrateStructure):
             for idx, component in enumerate(self.components):
                 self.activity[self.nb_input + idx] = component.get_output()
 
-            # each component loads the inputs from its inputs sources + each component steps
-            # print('\n-load and step-')
+            # each component loads the inputs from its inputs sources +
+            # each component steps
             for i in range(self.nb_components):
 
                 # indexes of the inputs to component idx
-                inputs_j = np.where(self.connectivity_matrix[i + self.nb_input] != 0)[0]
+                inputs_j = np.where(self.connectivity_matrix[i + 
+                                                             self.nb_input] != 0)[0]
 
                 if len(inputs_j) == 0:
                     continue
 
                 # load
-                self.components[i].collect_input(inputs=self.activity.take(inputs_j).T)
+                self.components[i].collect_input(inputs=
+                                                 self.activity.take(inputs_j).T)
 
                 # step
                 self.components[i].step()
@@ -2999,8 +2737,10 @@ class CellPlasticity(SubstrateStructure):
             loss_i = self.components[i].get_loss()[0]
 
             # loop over the input nodes to i and add its loss
-            for k, j in enumerate(np.where(self.connectivity_matrix[i + self.nb_input] == 1)[0]):
-                self.components[j - self.nb_input].add_loss(backpropagated_loss=loss_i[k])  # indexed at j
+            for k, j in enumerate(np.where(self.connectivity_matrix[i + 
+                                                    self.nb_input] == 1)[0]):
+                self.components[j - self.nb_input].add_loss(
+                    backpropagated_loss=loss_i[k])  # indexed at j
 
         # the input nodes collect their plasticity variables
         for k in range(self.nb_input):
@@ -3040,10 +2780,12 @@ class CellPlasticity(SubstrateStructure):
         # self.internals[1 + self.nb_input: ] = 
     
     def build_structure(self):
+        
         """
         create each component from the DNA and store them in a list
         :return: None
         """
+        
         # alphabet for the paramters name
         alphabet = ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'l', 'k')
 
@@ -3057,7 +2799,8 @@ class CellPlasticity(SubstrateStructure):
             self.components += [protein]
 
             if 'more' in tuple(protein_gene[1].keys()):
-                self.trainable_components += [idx] * int(protein_gene[1]['more']['trainable_params'].__len__() > 0)
+                self.trainable_components += [idx] * int(protein_gene[1][
+                    'more']['trainable_params'].__len__() > 0)
 
         # trainable
         self.trainable = self.trainable_components.__len__() > 0
@@ -3071,7 +2814,8 @@ class CellPlasticity(SubstrateStructure):
         # build a connectivity matrix
         self.connectivity_matrix = np.zeros((tot, tot))
 
-        # NB: the number of external inputs shall be considered; e.g. one input has index 0
+        # NB: the number of external inputs shall be considered; 
+        # e.g. one input has index 0
         for j, i in dna_connections:
             if i >= tot:
                 raise ValueError(f'source index {i} is too big')
@@ -3081,8 +2825,8 @@ class CellPlasticity(SubstrateStructure):
 
         # initialize the weights for each component
         for i in range(self.nb_components):
-            self.components[i].initialize(nb_inputs=int(self.connectivity_matrix[i + self.nb_input].sum()),
-                                              idx=i)
+            self.components[i].initialize(nb_inputs=int(
+                self.connectivity_matrix[i + self.nb_input].sum()), idx=i)
 
             # if the components is within the substrate structure's trainable
             # parameters
@@ -3114,7 +2858,8 @@ class CellPlasticity(SubstrateStructure):
         
         
 cell_dict = {'base': lambda dna, verbose: Cell(dna=dna, verbose=verbose),
-             'plasticity': lambda dna, verbose: CellPlasticity(dna=dna, verbose=verbose)}
+             'plasticity': lambda dna, verbose: CellPlasticity(dna=dna, 
+                                                               verbose=verbose)}
     
 
 #### NETWORK ####

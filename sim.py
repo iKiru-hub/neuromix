@@ -2,9 +2,10 @@ import numpy as np
 import brain
 import matplotlib.pyplot as plt
 import warnings
-import tools
 
-stored_functions = {'parabola': lambda x: max((0. + 0.01 * x - 0.00006 * x ** 2, 0)),
+
+stored_functions = {'parabola': lambda x: max((0. + 0.01 * x - \
+                                               0.00006 * x ** 2, 0)),
                     'periodic': lambda x: 0.5 + 0.5 * np.cos(x / 60)}
 
 
@@ -12,12 +13,14 @@ stored_functions = {'parabola': lambda x: max((0. + 0.01 * x - 0.00006 * x ** 2,
 
 class TestMap:
     
-    """
-    class for testing a substrate performance on some input-output mapping
-    """
+    """ test of a substrate performance on some input-output mapping """
     
     
     def __init__(self):
+        
+        """
+        :return: None
+        """
 
         # stimuli
         self.inputs = np.array(0)
@@ -54,8 +57,8 @@ class TestMap:
         :param kind: str, kind of input from ('spike', 'time', 'spike_time', 
                                               'spike_random', 'continuous',
                                               'classes'), default 'spike'
-        :param freq: list, list of frequencies in Hz of the input, valid for 'spike' 
-                            kind, default [3]
+        :param freq: list, list of frequencies in Hz of the input, valid for 
+                        'spike' kind, default [3]
         :param duration: int, duration in ms of the input train default 1000
         :param nb: int, number of input channels, default 1
         :param function: lambda expression, function generation of the 
@@ -63,6 +66,15 @@ class TestMap:
                         'continuous', default None
         :param nb_classes: int, number of classes for kind 'classes', default=1
         :return: None
+        
+        -----------------------------------------------------------------------
+        kind 'spike': spike train at the specified frequency
+        kind 'time': constant increment, i.e. diagonal y=x
+        kind 'spike_time': constant increment starting at each spike time
+        kind 'spike_random': like spike but uses random values for the spike 
+                events from a Uniform (0, 1)
+        kind 'continuous': the corresponding target is the function applied 
+                to each timestep
         """
 
         self.checklist['input'] = False
@@ -71,11 +83,13 @@ class TestMap:
         
         # freq type #
         if not isinstance(freq, list) and not isinstance(freq, np.ndarray):
-            raise TypeError(f'wrong type for "freq" parameter [{type(freq)}], only <list> or <ndarray> allowed')
+            raise TypeError(f'wrong type for "freq" parameter [{type(freq)}], '
+                            'only <list> or <ndarray> allowed')
         
         # number of frequencies #
         if len(freq) > nb:
-            warnings.warn('number of frequencies greater than the number of specified inputs, adapting parameter "nb"')
+            warnings.warn('number of frequencies greater than the number of '
+                          'specified inputs, adapting parameter "nb"')
             nb = len(freq)
             
         # list to array
@@ -139,24 +153,35 @@ class TestMap:
                    function=None, decay_params=(1, 0.005), freq=[3], verbose=True):
 
         """
-        generate a target train after a certain delay from the inputs for the simulation
-        :param kind: str, kind of input from ('spike', 'spike_random', 'spike_decay', 'cont_decay', 'continuous',
-        'cont_onset', 'classes'), default 'spike'
+        generate a target train after a certain delay from the inputs for the 
+                simulation
+        :param kind: str, kind of input from ('spike', 'spike_random', '
+                spike_decay', 'cont_decay', 'continuous', 'cont_onset', '
+                classes'), default 'spike'
         :param delay: float, delay after the input onset, default 100 [ms]
-        :param random_delay: bool, delay drawn from a Normal(mean=delay, std=50), default True
-        :param nb: int, number of targets, if left the default 0 then the same input number
-        will be taken
-        :param function: lambda expression, function generation of the time-dependant input for duration,
-                valid for 'continuous' and 'decay' kind, default None
-        :param decay_params: tuple, (height steepness) as: height * exp(-steepness * x), default (1, 0.005)
+        :param random_delay: bool, delay drawn from a Normal(mean=delay, 
+                                                             std=50), default True
+        :param nb: int, number of targets, if left the default 0 then the 
+                same input number will be taken
+        :param function: lambda expression, function generation of the 
+                time-dependant input for duration, valid for 'continuous' 
+                and 'decay' kind, default None
+        :param decay_params: tuple, (height steepness) as: 
+                height * exp(-steepness * x), default (1, 0.005)
         :param freq: float, frequency in Hz, used for continuous input kind
         :return: None
 
-        kind 'spike_random': like spike but uses random values for the spike events from a Uniform (0, 1)
-        kind 'spike_decay': like spike but uses values according to the provided function
+        ----------------------------------------------------------------------
+        kind 'spike': spike after a input spike plus a delay
+        kind 'spike_random': like spike but uses random values for the spike 
+                events from a Uniform (0, 1)
+        kind 'spike_decay': like spike but uses values according to the 
+                provided function
         kind 'cont_decay': like 'spike_decay' but it covers all the timestep
-        kind 'cont_onset': the corresponding target is the function applied to each input value
-        kind 'continuous': the corresponding target is the function applied to each timestep
+        kind 'cont_onset': the corresponding target is the function applied 
+                to each input value
+        kind 'continuous': the corresponding target is the function applied 
+                to each timestep
         """
 
         # check input presence
@@ -180,10 +205,12 @@ class TestMap:
             return
 
         elif input_kind == 'classes' and kind != 'classes':
-            raise ValueError(f'target of kind "{kind}" can not be generated for input kind "classes"')
+            raise ValueError(f'target of kind "{kind}" can not be generated '
+                             'for input kind "classes"')
             
         elif input_kind != 'classes' and kind == 'classes':
-            raise ValueError(f'target of kind "classes" can not be generated for input kind "{input_kind}"')
+            raise ValueError(f'target of kind "classes" can not be generated '
+                             f'for input kind "{input_kind}"')
 
         elif kind == 'continuous' or kind == 'cont_onset':
 
@@ -194,11 +221,13 @@ class TestMap:
         
         # freq type # <--- not really relevant, frequency is never used here
         if not isinstance(freq, list) and not isinstance(freq, np.ndarray):
-            raise TypeError(f'wrong type for "freq" parameter [{type(freq)}], only <list> or <ndarray> allowed')
+            raise TypeError(f'wrong type for "freq" parameter [{type(freq)}], '
+                             'only <list> or <ndarray> allowed')
         
         # number of frequencies #
         if len(freq) > nb:
-            warnings.warn('number of frequencies greater than the number of specified targets, adapting parameter "nb"')
+            warnings.warn('number of frequencies greater than the number of '
+                          'specified targets, adapting parameter "nb"')
             nb = len(freq)
             
         # list to array
@@ -250,7 +279,8 @@ class TestMap:
                         # zero x is relevant
                         if x == 0:
 
-                            # define a distance at which place a target value with proportional height
+                            # define a distance at which place a target value 
+                            # with proportional height
                             if random_delay:
                                 d = int(abs(np.random.normal(delay, 50, 1)))
                             else:
@@ -272,22 +302,27 @@ class TestMap:
 
                             # spike_decay | intensity as function(delay)
                             elif kind == 'spike_decay':
-                                self.targets[i, j + d] = decay_params[0] * np.exp(-decay_params[1] * d)
+                                self.targets[i, j + d] = decay_params[0] * \
+                                    np.exp(-decay_params[1] * d)
                                 continue
 
                             # continuous decay | intensity as function(t)
                             elif kind == 'cont_decay':
                                 for t in range(j, duration):
-                                    self.targets[i, t] = decay_params[0] * np.exp(-decay_params[1] * t)
+                                    self.targets[i, t] = decay_params[0] * \
+                                        np.exp(-decay_params[1] * t)
                                     
-                            # cont_decay | intensity as function(t) for t in range(j, duration) 
+                            # cont_decay | intensity as function(t) 
+                            # specified as : for t in range(j, duration) 
                             elif kind == 'cont_onset':
                                 for t, k in enumerate(range(j, duration)):
                                     self.targets[i, k] = function(t)
                                 continue
 
                             else:
-                                raise NotImplementedError(f'{kind} target not supported with input "{input_kind}" for now')
+                                raise NotImplementedError(f'{kind} target not '
+                                                          'supported with input'
+                                                          ' "{input_kind}" for now')
 
                     # <spike> input ##########################################
                     elif input_kind[:5] == 'spike':
@@ -299,10 +334,12 @@ class TestMap:
                             # input scaling
                             if kind == 'cont_decay':
                                 for t in range(duration - j):
-                                    self.targets[i, j + t] = x * decay_params[0] * np.exp(-decay_params[1] * t)
+                                    self.targets[i, j + t] = x * \
+                                        decay_params[0] * np.exp(-decay_params[1] * t)
                                 continue
                             
-                            # cont_decay | intensity as function(t) for t in range(j, duration) 
+                            # cont_decay | intensity as function(t) 
+                            # as for t in range(j, duration) 
                             # input scaling
                             elif kind == 'cont_onset':
                                 for t, k in enumerate(range(j, duration)):
@@ -394,7 +431,7 @@ class TestMap:
         generate a new set of inputs or targets with the same settings
         :param new_input: bool, if True new inputs will be generated, default False
         :param new_target: bool, if True new targets will be generated, default False
-        :return None
+        :return: None
         """
         
         if new_input: 
@@ -418,15 +455,18 @@ class TestMap:
                             freq=self.stimuli_data['target']['freq'],
                             verbose=False)
 
-    def plot_stimuli(self, show_input=True, show_target=False, style='plot', fix_dim=False):
+    def plot_stimuli(self, show_input=True, show_target=False, style='plot', 
+                     fix_dim=False):
         
     
-
         """
         plot the stimuli
-        :param show_input: bool, if True it also plots the inputs, default False
-        :param show_target: bool, if True it also plots the targets, default False
-        :param style: str, style of the plot from ('plot', 'raster'), default 'plot'
+        :param show_input: bool, if True it also plots the inputs, 
+                default False
+        :param show_target: bool, if True it also plots the targets, 
+                default False
+        :param style: str, style of the plot from ('plot', 'raster'), 
+                default 'plot'
         :param fix_dim: bool if True ylim=(0, 1), default False
         :return: None
         """
@@ -443,7 +483,8 @@ class TestMap:
         # check applicable style
         if style == 'raster' and self.stimuli_data['input']['kind'] == 'continuous':
             style = 'plot'
-            warnings.warn('"raster" style can not be used with continuous inputs, "plot" will be used')
+            warnings.warn('"raster" style can not be used with continuous '
+                          'inputs, "plot" will be used')
             print()
 
         nb, duration = self.inputs.shape
@@ -565,7 +606,8 @@ class TestMap:
             # raster
             for k, stimulus in enumerate(stimuli):
                 # plt.subplot(nb, 1, k+1)
-                plt.scatter(x, positions[k], c=stimulus, label=f'{names[k]}', cmap='Greys')
+                plt.scatter(x, positions[k], c=stimulus, label=f'{names[k]}', 
+                            cmap='Greys')
 
             plt.ylim((-0., 1.5))
             plt.yticks(())
@@ -575,6 +617,14 @@ class TestMap:
             plt.show()
     
     def plot_raster(self, show_target=False, spikes=None):
+        
+        """
+        raster plot for spike data
+        :param show_target: bool, default False
+        :param spikes: np.ndarray, if provided it will be plotted as another
+                spike train, default None
+        :return: None
+        """
         
         
         nb, duration = self.inputs.shape
@@ -660,10 +710,11 @@ class TestMap:
                 return_obj=True, plotting=False):
         
         """
-        test an AgentEvo object on the mapping
+        test an class.AgentEvo object on a previously added mapping
         :param candidate: class.AgentEvo
-        :param verbose: bool
-        :param return_obj: bool, if True the fitted candidate is returned
+        :param verbose: bool, default False
+        :param return_obj: bool, if True the fitted candidate is returned,
+                default True
         :return object, if return_obj else None
         """
         
@@ -711,16 +762,19 @@ class TestMap:
             print(f'result: {loss/duration:.4f} error/ms')
         
         # if the candidate is an Agent type it has its fitness updates
-        if hasattr(candidate, 'set_fitness') and callable(getattr(candidate, 'set_fitness', None)):
+        if hasattr(candidate, 'set_fitness') and callable(getattr(candidate, 
+                                                        'set_fitness', None)):
             candidate.set_fitness(fitness= -1 * round(loss, 4))
             
         # plot
         if plotting:
             
             
-            plt.plot(range(duration), self.inputs[0, :], '--k', alpha=0.5, label='input')
+            plt.plot(range(duration), self.inputs[0, :], '--k', alpha=0.5, 
+                     label='input')
 
-            plt.plot(range(duration), self.targets[0, :], '--', color='orange', alpha=0.8, label='target')
+            plt.plot(range(duration), self.targets[0, :], '--', color='orange', 
+                     alpha=0.8, label='target')
 
             plt.plot(range(duration), outputs, '-g', alpha=0.85, label='output')
 
@@ -734,15 +788,27 @@ class TestMap:
     def is_complete(self):
         
         """
-        :return bool, True if there are both targets and inputs, False otherwise
+        :return: bool, True if there are both targets and inputs, 
+                False otherwise
         """
         
         return self.checklist['input'] and self.checklist['target']
 
 
 class Gym(TestMap):
+    
+    """ a TestMap subclass 
+    
+    it extend the simple test to include a one-epoch simulation method
+    as well as a multiple-epochs simulation ideal for training and long-term
+    dynamics with similar stimulation
+    """
 
     def __init__(self):
+        
+        """
+        :return: None
+        """
         
         super().__init__()
 
@@ -756,8 +822,8 @@ class Gym(TestMap):
     def add_substrate(self, substrate: object):
 
         """
-        define a substrate to use
-        :param substrate: Substrate class
+        add a class.Substrate object to use
+        :param substrate: class.Substrate object
         :return: None
         """
 
@@ -774,7 +840,8 @@ class Gym(TestMap):
 
         """
         simulation one epoch of activity
-        :param plot_style: str, plotting style from (None, 'plot', 'raster'), default None
+        :param plot_style: str, plotting style from (None, 'plot', 'raster'), 
+                default None
         :param verbose: bool, print runtime information, default True
         :param training: bool, allow training of the substrate, default False
         :return: None
@@ -848,7 +915,8 @@ class Gym(TestMap):
                 # track stimuli during epoch
                 activity[:nb_inputs, ms] = self.inputs[:, ms].T
                 if self.checklist['target']:
-                    activity[nb_inputs: nb_inputs + nb_targets, ms] = self.targets[:, ms].T
+                    activity[nb_inputs: nb_inputs + nb_targets, 
+                             ms] = self.targets[:, ms].T
 
                 activity[nb_inputs + nb_targets:, ms] = self.substrate.get_output()
 
@@ -870,7 +938,8 @@ class Gym(TestMap):
                     plt.plot(x, activity[i + j + 1, :], label=f'target {j + 1}')
 
                 for k in range(nb_output):
-                    plt.plot(x, activity[i + j + k + 2, :], label=f'output {k + 1}')
+                    plt.plot(x, activity[i + j + k + 2, :], 
+                             label=f'output {k + 1}')
 
                 plt.xlabel('time [ms]')
                 plt.legend()
@@ -987,13 +1056,15 @@ class Gym(TestMap):
                     self.substrate.update()
 
                 # record
-                if plot_style is not None and self.stimuli_data['input']['kind'] != 'classes':
+                if plot_style is not None and self.stimuli_data['input'][
+                        'kind'] != 'classes':
 
                     # track stimuli during epoch
                     activity[:nb_inputs, ms] = self.inputs[:, ms].T
                     
                     if self.checklist['target']:
-                        activity[nb_inputs: nb_inputs + nb_targets, ms] = self.targets[:, ms].T
+                        activity[nb_inputs: nb_inputs + nb_targets, 
+                                 ms] = self.targets[:, ms].T
 
                     activity[nb_inputs + nb_targets:, ms] = self.substrate.get_output()
 
@@ -1023,7 +1094,7 @@ class Gym(TestMap):
             print('\n\n--- end training ---')
             
 
-        ##########################################################################
+        #######################################################################
 
         # plot
         if plot_style is not None:
@@ -1038,16 +1109,20 @@ class Gym(TestMap):
                 if not self.stimuli_data['input']['kind'] == 'classes':
 
                     plt.figure()
-                    plt.plot(x, activity_zero[0, :], '--g', alpha=0.2, label='output epoch 0')
+                    plt.plot(x, activity_zero[0, :], '--g', alpha=0.2, 
+                             label='output epoch 0')
     
                     for i in range(nb_inputs):
-                        plt.plot(x, activity[i, :], '-k', alpha=0.5, label=f'input {i + 1}')
+                        plt.plot(x, activity[i, :], '-k', alpha=0.5, 
+                                 label=f'input {i + 1}')
     
                     for j in range(nb_targets):
-                        plt.plot(x, activity[i + j + 1, :], '-', color='orange', alpha=0.5, label=f'target {j + 1}')
+                        plt.plot(x, activity[i + j + 1, :], '-', color='orange', 
+                                 alpha=0.5, label=f'target {j + 1}')
     
                     for k in range(nb_output):
-                        plt.plot(x, activity[i + j + k + 2, :], '-g', alpha=0.85, label=f'output {k + 1}')
+                        plt.plot(x, activity[i + j + k + 2, :], '-g', 
+                                 alpha=0.85, label=f'output {k + 1}')
     
                     plt.ylim((0, 1))
                     plt.xlabel('time [ms]')
@@ -1081,7 +1156,7 @@ class Gym(TestMap):
         
         """
         test the substrate
-        :return None
+        :return: None
         """
         
         if not isinstance(self.substrate, object):
@@ -1100,7 +1175,7 @@ class Gym(TestMap):
         
         """
         for stimuli of classes "classes", plot the performance of the substrate
-        :return None
+        :return: None
         """
         
         # inputs
@@ -1133,15 +1208,12 @@ class Gym(TestMap):
         plt.title(f'{nb_classes} classes of stimuli')
         plt.legend()
         plt.show()
-            
-        
 
     def get_input(self):
 
         """
-        :return: np.ndarray, input data
-        :return: dict, info about the input data
-        :return: bool, if the input data is loaded
+        :return: (np.ndarray, dict, bool), input data, info about the input 
+        data, if the input data is loaded
         """
 
         return self.inputs, self.stimuli_data['input'], self.checklist['input']
@@ -1149,9 +1221,8 @@ class Gym(TestMap):
     def get_target(self):
 
         """
-        :return: np.ndarray, target data
-        :return: dict, info about the target data
-        :return: bool, if the target data is loaded
+        :return: (np.ndarray, dict, bool), target data, info about the target 
+        data, if the target data is loaded
         """
 
         return self.targets, self.stimuli_data['target'], self.checklist['target']
@@ -1164,12 +1235,17 @@ class Gym(TestMap):
 
 class AgentEvo:
     
-    """
-    Agent class for evolving substrates
-    """
-    
+    """ Agent class for evolving substrates """
     
     def __init__(self, substrate: list, name: str, gen: int, kind: str):
+        
+        """
+        :param substrate: class.Substrate object
+        :param name: str
+        :param gen: int, generation of the agent
+        :param kind: str, kind of individual
+        :return: None
+        """
         
         self.substrate = substrate
         self.name = name
@@ -1184,7 +1260,7 @@ class AgentEvo:
         
         """
         step the dynamics
-        :return None
+        :return: None
         """
         
         self.substrate.step()
@@ -1195,7 +1271,7 @@ class AgentEvo:
         """
         receive an external input
         :param inputs: ndarray
-        :return None
+        :return: None
         """
         
         self.substrate.collect_input(inputs=inputs)
@@ -1203,7 +1279,7 @@ class AgentEvo:
     def get_output(self):
         
         """
-        :return output: ndarray
+        :return: output, np.ndarray
         """
         
         return self.output
@@ -1211,7 +1287,7 @@ class AgentEvo:
     def get_fitness(self):
         
         """
-        :return fitness, float
+        :return: fitness, float
         """
         
         return self.fitness
@@ -1219,7 +1295,7 @@ class AgentEvo:
     def get_dna(self):
         
         """
-        :return list
+        :return: list
         """
         
         return self.substrate.get_dna()
@@ -1227,7 +1303,7 @@ class AgentEvo:
     def get_substrate(self):
         
         """
-        :return object
+        :return: class.Substrate object
         """
         
         return self.substrate
@@ -1235,7 +1311,7 @@ class AgentEvo:
     def get_info(self):
         
         """
-        :return info, dict, information and status of the agent
+        :return: info, dict, information and status of the agent
         """
         
         return {'name': self.name,
@@ -1247,7 +1323,7 @@ class AgentEvo:
     def get_name(self):
         
         """
-        :return str
+        :return: str, name
         """
         
         return self.name
@@ -1256,8 +1332,8 @@ class AgentEvo:
         
         """
         set a new fitness value
-        :param fitness, float
-        :return None
+        :param fitness: float
+        :return: None
         """
         
         self.fitness = fitness
@@ -1266,7 +1342,7 @@ class AgentEvo:
         
         """
         reset of the agent variables
-        :return None
+        :return: None
         """
         
         # reset substrate
@@ -1283,16 +1359,14 @@ class AgentEvo:
     
 class DNA_generator:
     
-    """
-    generate and manipulate dna and produce a functional Substrate object
-    """
+    """ generate and manipulate dna and produce a functional Substrate object """
     
     def __init__(self, dna_params: dict, substrate_name: str):
         
         """
         :param dna_params, dict, parameters for building a dna
         :param substrate_name, str, name of the substrate to build
-        :return None
+        :return: None
         """
         
         self.params = dna_params
@@ -1310,10 +1384,10 @@ class DNA_generator:
     def sample_protein(self, variety_pool: tuple, probabilities: tuple):
         
         """
-        :param variety_pool, tuple, set of protein varieties to sample from
-        :param probabilities, tuple, set of probabilities for each protein 
+        :param variety_pool: tuple, set of protein varieties to sample from
+        :param probabilities: tuple, set of probabilities for each protein 
         variety to be picked
-        :return dict, the protein picked
+        :return: dict, the protein picked
         """
         
         variety = np.random.choice(variety_pool, p=probabilities)
@@ -1321,11 +1395,17 @@ class DNA_generator:
         if variety == 'exp':
             
             protein_content = {'variety': variety,
-                               'attributes': {'tau': self.params['substrate']['protein']['variety'][variety]['attributes']['tau'](),
-                                              'Eq': self.params['substrate']['protein']['variety'][variety]['attributes']['Eq']()
+                               'attributes': {'tau': self.params['substrate'][
+                                   'protein']['variety'][variety]['attributes'][
+                                       'tau'](),
+                                              'Eq': self.params['substrate'][
+                                                  'protein']['variety'][
+                                                variety]['attributes']['Eq']()
                                               },
                                'more': {'trainable_params': [],
-                                        'activation': self.params['substrate']['protein']['variety'][variety]['more']['activation']()}
+                                        'activation': self.params['substrate'][
+                                            'protein']['variety'][variety][
+                                                'more']['activation']()}
                                }
                        
             
@@ -1334,17 +1414,18 @@ class DNA_generator:
             protein_content = {'variety': variety,
                                'attributes': {},
                                'more': {'trainable_params': [],
-                                        'activation': self.params['substrate']['protein']['variety'][variety]['more']['activation']()}
+                                        'activation': self.params['substrate'][
+                                            'protein']['variety'][variety][
+                                                'more']['activation']()}
                                }
                        
-            
         return ('Protein', protein_content)
 
     def new_dna(self):
         
         """
         build a new complete dna
-        :return None
+        :return: None
         """
         
         
@@ -1371,8 +1452,10 @@ class DNA_generator:
             # cell params
             dna_content['more'] = self.params['substrate']['cell']['more']
             dna_content['more']['trainable_params'] = []
+            
+            # probably too harsh computing the cycles this way
             dna_content['more']['cycles'] = round(np.random.normal(nb_proteins, 
-                                                                   1))  # probably too harsh computing the cycles this way
+                                                                   1))  
             
             # define connections
             connections = [(0, 1)]
@@ -1410,7 +1493,7 @@ class DNA_generator:
         default False
         :param dna2, list, second parent dna required for kind "crossed",
         default False
-        :return class.Substrate
+        :return: class.Substrate object
         """
         
         # reset
@@ -1452,7 +1535,7 @@ class DNA_generator:
         """
         mutate a parent dna and produce a new mutant one
         :param dna, list
-        :return None
+        :return: None
         """
                 
         # mutate proteins
@@ -1486,7 +1569,7 @@ class DNA_generator:
         """
         mutate a protein given its corresponding dna dict
         :param protein_gene: list, protein dna
-        :return list, the mutated protein dna
+        :return: list, the mutated protein dna
         """
     
                     
@@ -1527,7 +1610,7 @@ class DNA_generator:
         apply crossing over to two parents dna
         :param dna1, first parent dna
         :param dna2, second parent dna
-        :return None
+        :return: None
         """
         
         self.new_dna()  # <--- TO EDIT
@@ -1536,7 +1619,7 @@ class DNA_generator:
     def get_dna(self):
         
         """
-        :return list, last dna produced
+        :return: list, last dna produced
         """
             
         return self.dna
@@ -1548,7 +1631,19 @@ class DNA_generator:
     
 class SimpleEvolution:
     
+    """ simple genetic algorithm to evolve DNA on a defined stimulation """
+    
     def __init__(self, testmap: object, proportions: dict, dna_generator: object, verbose=True):
+        
+        """
+        :param testmap: class.TestMap object
+        :param proportions: dict, dictionary of values in [0, 1] indicating the
+        proportion in the population of different kind of individuals, keys
+        are : {'nb_new': x, 'nb_mut': x, 'nb_cro': x, 'nb_cop': x}
+        :param dna_generator: class.DNA_generator object
+        :param verbose: bool, default True
+        :return: None
+        """
         
         # params
         self.nb_new = proportions['nb_new']
@@ -1586,7 +1681,7 @@ class SimpleEvolution:
         evolve the popoulation as a cycle of new generation and fitting
         :param epochs: int, number of epochs to run (i.e. generations), default 10
         :param reset: bool, if True the generation restart from 0, default False
-        :return None
+        :return: None
         """
         
         print(f'\n------------- evolving [{epochs}] ---------------\n')
@@ -1609,7 +1704,7 @@ class SimpleEvolution:
         
         """
         building of a new population
-        :return None
+        :return: None
         """
         
         self.gen += 1
@@ -1671,7 +1766,7 @@ class SimpleEvolution:
         
         """
         fit population to testmap  | edit to multiprocessing
-        :return None
+        :return: None
         """
         
         self.population = self.shell(batch=self.population)
@@ -1682,7 +1777,7 @@ class SimpleEvolution:
         """
         fit a batch of agents over the game, run sequentially on one core
         :param batch: list, set of agents 
-        :return list, set of fitted agents in order of fitness
+        :return: list, set of fitted agents in order of fitness
         """
         
         fitted_batch = []
@@ -1695,7 +1790,7 @@ class SimpleEvolution:
         
         """
         record fitness and fittests agents [2]
-        :return None
+        :return: None
         """
         
         self.fittests = self.population[:2]
@@ -1708,19 +1803,20 @@ class SimpleEvolution:
     def get_fitted_dna(self):
         
         """
-        :return dict, information about the fittest
+        :return: dict, information about the fittest
         """
         
         return self.fittest.get_info()
     
     
-    def random_name(self, gen: int, kind: str):
+    @staticmethod
+    def random_name(gen: int, kind: str):
         
         """
         generate a random name
         :param gen: int
         :param kind: str
-        :return str
+        :return: str, name
         """
         
         vowels = 'a e i o u'.split(' ')
@@ -1731,6 +1827,7 @@ class SimpleEvolution:
             
         return name
     
+    @staticmethod
     def inherit_name(self, name: str, gen: int, tag: str):
         
         """
@@ -1738,7 +1835,7 @@ class SimpleEvolution:
         :param name: str,
         :param gen: int,
         :param tag: str,
-        :return str
+        :return: str
         """
         
         _, midname, _ = name.split('_')
@@ -1749,7 +1846,7 @@ class SimpleEvolution:
         
         """
         show the performance of the fittest
-        :return None
+        :return: None
         """
         
         self.testmap.testing(candidate=self.fittests[0], return_obj=0, plotting=1)
