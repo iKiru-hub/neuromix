@@ -9,8 +9,8 @@ Created on Mon Oct 31 13:30:54 2022
 
 import neuromix as mix  
 from numpy import cos, sin, exp
-from os import system
-import time
+#from os import system
+#import time
 
 
 #%% DNA definition

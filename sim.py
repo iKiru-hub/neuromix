@@ -407,12 +407,9 @@ class TestMap:
                             if x != 0:                        
                                 for t, k in enumerate(range(j, duration)):
                                     self.targets[i, k] = x * function(t)
-                            continue
-                        
-                        
-                           
-                        
-
+                            continue 
+                    
+                
         self.checklist['target'] = True
         self.stimuli_data['target']['kind'] = kind
         self.stimuli_data['target']['delay'] = delay
@@ -564,58 +561,9 @@ class TestMap:
 
         elif style == 'raster':
             
-            
             self.plot_raster(show_target=show_target)
-            
-            return
-            
-            if (self.stimuli_data['input']['kind'] == 'spike' or self.stimuli_data[
-                    'input']['kind'] == 'spike_random') and (self.stimuli_data[
-                        'target']['kind'] == 'spike' or self.stimuli_data[
-                            'target']['kind'] == 'spike_random' or self.stimuli_data[
-                                'target']['kind'] == 'spike_decay'): 
-                pass
-            
-            else:
-                raise ValueError(f'input "{self.stimuli_data["input"]["kind"]}"'
-                                 f' or target "{self.stimuli_data["target"]["kind"]}"' 
-                                 ' not supported for plot style raster')
-
-            if show_target:
-                nb += len(self.targets)
-
-            stimuli = np.zeros((nb, duration))
-            positions = np.zeros((nb, duration))
-            names = []
-            for i, row in enumerate(self.inputs):
-                for t, v in enumerate(row):
-                    if v > 0:
-                        stimuli[i, t] = v
-                        positions[i, t] = 1.5 - (i + 1) / nb
-
-                names += [f'input {i + 1}']
-
-            for j, row in enumerate(self.targets):
-                for t, v in enumerate(row):
-                    if v > 0:
-                        stimuli[i + j + 1, t] = v
-                        positions[i + j + 1, t] = 1.5 - (i + j + 2) / nb
-
-                names += [f'target {j + 1}']
-
-            # raster
-            for k, stimulus in enumerate(stimuli):
-                # plt.subplot(nb, 1, k+1)
-                plt.scatter(x, positions[k], c=stimulus, label=f'{names[k]}', 
-                            cmap='Greys')
-
-            plt.ylim((-0., 1.5))
-            plt.yticks(())
-            plt.xlabel('time [ms]')
-            plt.legend()
-            plt.title('Stimulation raster plot')
-            plt.show()
     
+        
     def plot_raster(self, show_target=False, spikes=None):
         
         """
@@ -813,7 +761,7 @@ class Gym(TestMap):
         super().__init__()
 
         # substrate
-        self.substrate: brain.Molecule
+        self.substrate: object
         self.substrate_name = ""
         
         print('\n@Gym')
@@ -1096,13 +1044,16 @@ class Gym(TestMap):
 
         #######################################################################
 
-        # plot
+        ### PLOT ACTIVITY ###
+        
         if plot_style is not None:
             
 
             # activity
             x = range(duration)
             i, j, k = 0, -1, 0
+            
+            ### simple plot
             if plot_style == 'plot':
                 
                 # not classes data kind
@@ -1129,12 +1080,14 @@ class Gym(TestMap):
                     plt.legend()
                     plt.title(f'Plot of the activity for {duration}ms')
 
+            ### raster plot
             elif plot_style == 'raster':
                 
                 self.plot_raster(show_target=1, spikes=activity[-nb_output:, :])
                 
                 
-            # metrics
+            ### PLOT METRICS ###
+            
             plt.figure()
             plt.subplot(nb_metrics, 1, 1)
             plt.plot(range(epochs), metrics[0, :], '-r', label='loss')

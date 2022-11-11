@@ -277,7 +277,6 @@ class SubstrateTrain(SubstrateCore):
         
         return (self.substrate_name, self.DNA)
     
-        
 
 class Substrate:
 
@@ -799,8 +798,7 @@ class SubstrateStructureCore(SubstrateCore):
             warnings.warn("no grapher object has been added, no plot generated")
             return
         
-        self.grapher.draw_graph()
-        
+        self.grapher.draw_graph()   
         
     def get_grapher(self):
         
@@ -810,8 +808,7 @@ class SubstrateStructureCore(SubstrateCore):
         """
         
         return self.grapher
-        
-
+    
     @staticmethod
     def get_substrate_name():
 
@@ -972,7 +969,6 @@ class SubstrateStructure(Substrate):
         # reset
         self.back_loss *= 0
 
-
     def collect_input(self, inputs: np.ndarray):
         
         """
@@ -1020,10 +1016,9 @@ class SubstrateStructure(Substrate):
 
         if self.DNA['more']['nb_out'] == 0:
             warnings.warn('Isolated Structure: zero outputs specified')
-
-
+            
     def build_structure(self):
-        
+
         """
         create each component from the DNA and store them in a list
         :return: None
@@ -1041,9 +1036,7 @@ class SubstrateStructure(Substrate):
             protein = generate_substrate(dna=protein_gene, verbose=self.verbose)
             self.components += [protein]
 
-            if 'more' in tuple(protein_gene[1].keys()):
-                self.trainable_components += [idx] * int(protein_gene[1][
-                    'more']['trainable_params'].__len__() > 0)
+            self.trainable_components += [idx] * int(protein_gene[1]['more']['trainable_params'].__len__() > 0)
 
         # trainable
         self.trainable = self.trainable_components.__len__() > 0
@@ -1057,8 +1050,7 @@ class SubstrateStructure(Substrate):
         # build a connectivity matrix
         self.connectivity_matrix = np.zeros((tot, tot))
 
-        # NB: the number of external inputs shall be considered; 
-        # e.g. one input has index 0
+        # NB: the number of external inputs shall be considered; e.g. one input has index 0
         for j, i in dna_connections:
             if i >= tot:
                 raise ValueError(f'source index {i} is too big')
@@ -1068,8 +1060,8 @@ class SubstrateStructure(Substrate):
 
         # initialize the weights for each component
         for i in range(self.nb_components):
-            self.components[i].initialize(nb_inputs=int(
-                self.connectivity_matrix[i + self.nb_input].sum()), idx=i)
+            self.components[i].initialize(nb_inputs=int(self.connectivity_matrix[i + self.nb_input].sum()),
+                                              idx=i)
 
             # if the components is within the substrate structure's trainable
             # parameters
@@ -1078,19 +1070,15 @@ class SubstrateStructure(Substrate):
             
             # register the trainable parameters name
             param_values = self.components[i].get_trainable_names()
-                        
+        
             # set name
             self.trainable_names += [f'c_{alphabet[k]}{i}' for k
                                      in range(len(param_values))]
             
         # adjust 
         self.nb_trainable = max((0, self.nb_trainable))
-                        
+            
         self.trainable_params = np.zeros(self.nb_trainable)  
-        
-        # var
-        self.activity = np.zeros(self.nb_input + self.nb_components)
-        self.output = np.zeros(self.nb_output)
         
         # 
         self.initialization_flag = True
@@ -1219,7 +1207,6 @@ class SubstrateStructure(Substrate):
         
         self.grapher.draw_graph()
         
-        
     def get_grapher(self):
         
         """
@@ -1229,7 +1216,6 @@ class SubstrateStructure(Substrate):
         
         return self.grapher
         
-    
     def reset(self):
 
         """
@@ -1881,8 +1867,6 @@ class ProteinBase(Protein):
         self.DNA['params']['b'] = self.bias
 
 
-
-
 class ProteinCond(Protein):
 
     """ a Protein subclass
@@ -2423,7 +2407,6 @@ class ProteinPlasticity(Protein):
         self.internals = internals
 
 
-
 class ProteinPlasticitySTDP(ProteinPlasticity):
 
     """ a ProteinPlasticity subclass
@@ -2627,7 +2610,6 @@ class Cell(SubstrateStructure):
         if self.DNA['more']['nb_out'] == 0:
             warnings.warn('Isolated Cell: zero outputs specified')
             
-    
     
 class CellPlasticity(SubstrateStructure):
     
@@ -2854,7 +2836,6 @@ class CellPlasticity(SubstrateStructure):
         
         # 
         self.initialization_flag = True
-        
         
         
 cell_dict = {'base': lambda dna, verbose: Cell(dna=dna, verbose=verbose),
