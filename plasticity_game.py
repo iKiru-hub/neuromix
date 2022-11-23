@@ -116,5 +116,5 @@ gym.add_substrate(substrate=sub)
 
 #%% training
 #
-gym.long_simulation(epochs=10, info_freq=5, plot_style='raster', training=1,
-                    rigenerate=1, early_stopping=False)
+#gym.long_simulation(epochs=10, info_freq=5, plot_style='raster', training=1,
+#                    rigenerate=1, early_stopping=False)
