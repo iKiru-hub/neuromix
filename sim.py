@@ -1180,11 +1180,8 @@ class Gym(TestMap):
 
         return self.targets, self.stimuli_data['target'], self.checklist['target']
 
-   
-
 
 ########### AGENTS ###########
-
 
 class AgentEvo:
     
@@ -1306,10 +1303,9 @@ class AgentEvo:
         self.fitness = 0.
         
                 
-        
 ########### DNA GENERATOR ###########
             
-    
+  
 class DNA_generator:
     
     """ generate and manipulate dna and produce a functional Substrate object """
@@ -1331,8 +1327,6 @@ class DNA_generator:
                                     dna_params['settings']['mutation_std'])
         self.mutation_prob = lambda: np.random.binomial(1, 
                                     dna_params['settings']['mutation_prob'])
-        
-        
         
     def sample_protein(self, variety_pool: tuple, probabilities: tuple):
         
@@ -1435,7 +1429,6 @@ class DNA_generator:
         # finalize
         self.dna = tuple(self.dna)
         
-    
     def generate(self, kind='new', dna1=False, dna2=False):
         
         """
@@ -1482,7 +1475,6 @@ class DNA_generator:
         
         return brain.generate_substrate(dna=self.dna, verbose=False)
                 
-            
     def mutate(self, dna: list):
         
         """
@@ -1515,8 +1507,6 @@ class DNA_generator:
         # update
         self.dna = dna
                 
-            
-            
     def mutate_protein(self, protein_gene: list):
         
         """
@@ -1556,7 +1546,6 @@ class DNA_generator:
             
         return protein_gene
                 
-    
     def cross(self, dna1: list, dna2: list):
         
         """
@@ -1568,7 +1557,6 @@ class DNA_generator:
         
         self.new_dna()  # <--- TO EDIT
     
-    
     def get_dna(self):
         
         """
@@ -1577,10 +1565,8 @@ class DNA_generator:
             
         return self.dna
     
-    
-    
-########### EVOLUTION ###########
 
+########### EVOLUTION ###########
     
 class SimpleEvolution:
     
@@ -1625,8 +1611,7 @@ class SimpleEvolution:
         # record
         self.curr_fitness = 0.
         
-        print('\n@SimpleEvolution')
-        
+        print('\n@SimpleEvolution')      
         
     def evolve(self, epochs=10, reset=False):
         
@@ -1651,8 +1636,7 @@ class SimpleEvolution:
             self.record()
             
         print('\n', '----------------------------------\n')
-        
-        
+                
     def new_generation(self):
         
         """
@@ -1724,7 +1708,6 @@ class SimpleEvolution:
         
         self.population = self.shell(batch=self.population)
         
-    
     def shell(self, batch: list):
         
         """
@@ -1751,7 +1734,6 @@ class SimpleEvolution:
         
         if self.verbose:
             print(f'\n- fittest: {self.fittests[0].get_name()} [{self.fittests[0].get_fitness():.3f}]')
-        
     
     def get_fitted_dna(self):
         
@@ -1760,8 +1742,7 @@ class SimpleEvolution:
         """
         
         return self.fittest.get_info()
-    
-    
+        
     @staticmethod
     def random_name(gen: int, kind: str):
         

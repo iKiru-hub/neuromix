@@ -1,6 +1,9 @@
 import numpy as np
 import warnings
-from tools import Grapher
+try:
+    from tools import Grapher
+except ModuleNotFoundError:
+    print("!ModuleNotFound: tools [Grapher]")
 
 
 #### SUBSTRATE GENERATOR ####
@@ -326,7 +329,6 @@ class Substrate:
         # initialization
         self.initialization_flag = False
 
-
     def step(self):
 
         """
@@ -366,7 +368,6 @@ class Substrate:
 
         self.nb_input = nb_inputs
         self.id = idx
-
 
     def collect_input(self, inputs: np.ndarray):
         

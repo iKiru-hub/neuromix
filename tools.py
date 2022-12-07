@@ -9,7 +9,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-
 class Grapher:
     
     """ provide graphical network functionalities  """
@@ -100,7 +99,6 @@ class Grapher:
         #self.fig.canvas.draw()
         #self.fig.show()
 
-
     def draw_graph(self):
         
         """
@@ -124,8 +122,7 @@ class Grapher:
         plt.ylim((-0.3, 1.3))
         plt.xticks(())
         plt.yticks(())
-        plt.show()
-        
+        plt.show()        
         
     def build(self):
         
@@ -162,8 +159,7 @@ class Grapher:
         
         self.pause_time = new_time
         
-        
-    
+            
 if __name__  == '__main__':
     
     C = [(0, 1), (1, 2), (1, 3), (2, 4), (3, 4)]
