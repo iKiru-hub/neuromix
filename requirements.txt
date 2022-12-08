@@ -1,4 +1,0 @@
--e git+https://github.com/iKiru-hub/neuromix.git@main#egg=neuromix
-numpy
-matplotlib 
-
