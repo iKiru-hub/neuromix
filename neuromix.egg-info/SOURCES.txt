@@ -1,0 +1,7 @@
+README.md
+setup.py
+neuromix.egg-info/PKG-INFO
+neuromix.egg-info/SOURCES.txt
+neuromix.egg-info/dependency_links.txt
+neuromix.egg-info/requires.txt
+neuromix.egg-info/top_level.txt
