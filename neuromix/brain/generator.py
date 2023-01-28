@@ -14,11 +14,11 @@ from neuromix.brain import templates as T
 SUBSTRATE_LIST = P.PROTEIN_LIST + C.CELL_LIST + N.NETWORK_LIST
 
 # load libraries
-with open(r"/Users/daniekru/Research/lab/samples/proteins.json", 'r') as f:
+with open(r"/Users/daniekru/Research/codebase/src/neuromix/neuromix/samples/proteins.json", 'r') as f:
     proteins_library = json.loads(f.read())
     #print("+Proteins library loaded")
 
-with open(r"/Users/daniekru/Research/lab/samples/cells.json", 'r') as f:
+with open(r"/Users/daniekru/Research/codebase/src/neuromix/neuromix/samples/cells.json", 'r') as f:
     cells_library = json.loads(f.read())
     #print("+Cells library loaded")
 
