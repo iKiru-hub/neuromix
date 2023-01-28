@@ -45,7 +45,6 @@ class CellPlasticityJump(T.CellPlasticity):
                   f'{self.nb_inputs}\nnb_outputs: {self.nb_outputs}'
                   f'\nnb_trainable: {self.nb_trainable}')
 
-
     def collect_input(self, inputs: np.ndarray):
 
    

@@ -1,9 +1,12 @@
-import numpy as np 
+import numpy as np
+import pprint
 import warnings 
 
 
 RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
+
+
 
 def set_random_seed(seed: int):
 
@@ -55,6 +58,24 @@ def generate_unique_id(size=7):
     symbols = [chr(l) for l in range(65, 91)] + [str(i) for i in range(10)]
     return "".join(np.random.choice(symbols, size=size).tolist())
 
+def print_dna(dna: dict, depth=5):
+
+    """
+    print the DNA of a Substrate
+    
+    Parameters
+    ----------
+    dna : dict
+    depth : int [optional]
+        depth of the print, by default 5
+
+    Returns
+    -------
+    None
+    """
+    
+    pretty_printer = pprint.PrettyPrinter(depth=depth)
+    pretty_printer.pprint(dna)
 
 
 #### ACTIVATION FUNCTIONS ####
@@ -259,7 +280,7 @@ class Substrate:
         None
         """
 
-        self._feedback += ext_feedback
+        self._feedback = ext_feedback
     
     def add_idx(self, idx: int):
 
@@ -431,32 +452,7 @@ class Substrate:
 
         return self.nb_inputs
 
-    def print_dict(self, gene: dict, indentation=0):
-
-        """
-        print a dictionary in a nice format
-
-        Parameters
-        ----------
-        gene : dict
-            dictionary to print
-        indentation : int
-            number of spaces to indent the dictionary
-            
-        Returns
-        -------
-        None
-        """
-
-        print()
-        for key, value in gene.items():
-            print('\t' * indentation + str(key), ': ', end='')
-            if isinstance(value, dict):
-                self.print_dict(gene=value, indentation=indentation+1)
-            else: 
-                print(str(value))
-
-    def get_dna(self, show=False, indentation=0):
+    def get_dna(self, show=False, full=False, depth=5):
         
         """
         update the DNA with the current parameters and returns it
@@ -465,21 +461,25 @@ class Substrate:
         ----------
         show : bool
             print the DNA
-        indentation : int
-            number of spaces to indent the DNA
+        full : bool
+            if True, print the full DNA as [$substrate_class, [dna]]
+        depth : int
+            depth of the print
         
         Returns
         -------
         DNA : dict
         """
         
-        self._update_dna()
+        self._update_substrate_dna()
 
         if show:
             print(f"{self.substrate_class}.{self.substrate_family}.{self.substrate_id}")
-            self.print_dict(gene=self.DNA, indentation=indentation)
+            print_dna(dna=self.DNA, depth=depth)
             return
 
+        if full:
+            return [self.substrate_class, self.DNA]
         return self.DNA
     
     def is_initialized(self):
@@ -596,7 +596,7 @@ class SubstrateStructure(Substrate):
         # attributes_keys check 
         attributes_keys = tuple(self.DNA['more'].keys())
         assert 'idx_out' in attributes_keys, "missing attribute 'idx_out'"
-        assert isinstance(attributes_keys['idx_out'], list), "attribute 'idx_out' must be a list"
+        assert isinstance(self.DNA['more']['idx_out'], list), "attribute 'idx_out' must be a list"
         assert 'nb_out' in attributes_keys, "missing attribute 'nb_out'"
         assert 'cycles' in attributes_keys, "missing attribute 'cycles'"
         
@@ -622,6 +622,7 @@ class SubstrateStructure(Substrate):
         None
         """
 
+        print("building structure...")
         # check 
         assert isinstance(built_components, list), "built_components must be a list"
 
@@ -663,6 +664,7 @@ class SubstrateStructure(Substrate):
 
         # initialize the _weights for each component
         for i in range(self.nb_components):
+
             # re-initialize each component and add its index
             self.components[i].re_initialize(nb_inputs=int(self.connectivity_matrix[i + self.nb_inputs].sum()))
             self.components[i].add_idx(idx=i)
@@ -696,6 +698,13 @@ class SubstrateStructure(Substrate):
         -------
         None
         """
+
+        # update DNA with each components' DNA
+        components_gene = []
+        for component in self.components:
+            components_gene += [component.get_dna(full=True)]
+
+        self.DNA['components'] = components_gene
 
         # update DNA
         self._update_substrate_dna()
@@ -756,8 +765,9 @@ class SubstrateStructure(Substrate):
                 
 
             # define the input as the activity of the output components
-            for idx, component in enumerate(self.components[-self.nb_outputs:]):
-                self.output[idx] = component.get_output()
+            #for idx, component in enumerate(self.components[-self.nb_outputs:]):
+            #    self.output[idx] = component.get_output()
+            self.output = self.activity[self.idx_out]
 
             # reset inputs
             try:
@@ -1059,6 +1069,7 @@ class Protein(Substrate):
         
         #
         self._protein_initialization()
+        self._update_protein_dna()
 
         if verbose:
             print(f'\n@{self.substrate_class}.{self.substrate_family}.{self.substrate_id}', end='')
@@ -1085,7 +1096,7 @@ class Protein(Substrate):
 
         ### WEIGHT INITIALIZATION ###
 
-        # _weights in the DNA and no new weights are needed 
+        # weights in the DNA and no new weights are needed 
         if 'w' in self.DNA['params'] and not new_weights:
 
             if len(self.DNA['params']['w']) != self.nb_inputs:
@@ -1097,7 +1108,7 @@ class Protein(Substrate):
 
             self._weights = np.array(self.DNA['params']['w']).reshape(1, -1)
 
-        # new _weights
+        # new weights
         else:
             self._weights = np.around(np.abs(np.random.normal(1, 1 / np.sqrt(\
                                     self.nb_inputs + 1), (1, self.nb_inputs))), 4)
@@ -1111,7 +1122,7 @@ class Protein(Substrate):
         # if the _weights are trainable, then update the trainable record 
         # adjusting for the number of inputs
         if 'trainable_params' in self.DNA['more']:  # if trainable params are defined
-            if 'w' in self.DNA['more']['trainable_params']:
+            if 'w' in self.DNA['more']['trainable_params'] or 'w1' in self.DNA['more']['trainable_params']:
 
                 self.nb_trainable = self.nb_inputs
                 
@@ -1137,10 +1148,11 @@ class Protein(Substrate):
         None
         """
 
+        self.DNA['params']['w'] = self._weights.tolist()
+        self.DNA['more']['nb_inp'] = self.nb_inputs
+
         # update the DNA
         self._update_substrate_dna()
-
-        self.DNA['params']['w'] = self._weights.tolist()
 
     def re_initialize(self, nb_inputs: int):
 
@@ -1159,9 +1171,9 @@ class Protein(Substrate):
 
         self.nb_inputs = nb_inputs
 
-        self._protein_initialization(new__weights=True)
+        self._protein_initialization(new_weights=True)
 
-        self._update_dna()
+        self._update_protein_dna()
 
     def get_trainable_params(self):
 
@@ -1187,7 +1199,7 @@ class Protein(Substrate):
             default activity
         """
 
-        return self.activity.item()
+        return self.activity
     
     def reset_protein(self):
 
@@ -1408,12 +1420,13 @@ class CellPlasticity(SubstrateStructure):
         self.idx_extf = []
         
         # arrays in which to store the activity of the internal and external plasticity variables
-        self._self.internals = None
+        self._internals = None
         self._externals = None 
         
         # initialize
         self._cell_plasticity_initialization()
         #self._build_structure(built_components=built_components)
+        self._update_structure_dna()
         
         if verbose:
             print(f'\n@{self.substrate_class}.{self.substrate_family}.{self.substrate_id}', end='')
@@ -1449,7 +1462,7 @@ class CellPlasticity(SubstrateStructure):
         self.idx_plastic = self.DNA['more']['idx_plastic']
         self.idx_intf = self.DNA['more']['idx_intf']
         self.idx_extf = self.DNA['more']['idx_extf']
-        self._self.internals = np.zeros(len(self.idx_intf))
+        self._internals = np.zeros(len(self.idx_intf))
         self._externals = np.zeros(len(self.idx_extf))
 
     def _build_structure(self, built_components: list):
@@ -1467,7 +1480,7 @@ class CellPlasticity(SubstrateStructure):
         None
         """
 
-        print('CellPlasticity')
+        print('CellPlasticity building...')
         
         # alphabet for the paramters name
         alphabet = ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'l', 'k')
@@ -1523,6 +1536,8 @@ class CellPlasticity(SubstrateStructure):
             # parameters
             # book space in track for the tracking of params of the internal components
 
+            # re-initialize each component and add its index
+            self.components[i].re_initialize(nb_inputs=int(self.connectivity_matrix[i + self.nb_inputs].sum()))
             self.components[i].add_idx(idx=i)
 
             self.nb_trainable += self.components[i].get_nb_trainable()
@@ -1687,7 +1702,7 @@ class CellPlasticity(SubstrateStructure):
         """
         self.reset_structure()
 
-        self._self.internals *= 0 
+        self._internals *= 0 
         self._externals *= 0
 
 
