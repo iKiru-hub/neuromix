@@ -9,14 +9,14 @@ if __name__ == '__main__':
                                                      'params': {},
                                                      'more': {'trainable_params': ['w'],
                                                               'lr': 0.01,
-                                                              'acvtivation': 'sigmoid'
+                                                              'activation': 'sigmoid'
                                                               }
                                                      }),
                                        ('Protein', {'variety': 'base',
                                                      'params': {},
                                                      'more': {'trainable_params': ['w'],
                                                               'lr': 0.01,
-                                                              'acvtivation': 'sigmoid'
+                                                              'activation': 'sigmoid'
                                                               }
                                                      }),
                                        ('Protein', {'variety': 'base',
