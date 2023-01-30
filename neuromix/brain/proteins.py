@@ -1437,6 +1437,274 @@ class ProteinJump(T.Protein):
         self._var_jump = self._original_params['var_jump']
 
 
+class ProteinJumpStep(T.Protein):
+
+    """ a Protein subclass 
+
+    its dynamics are specified by a jump function with step-wise drift
+    
+    """
+    
+    def __init__(self, dna: dict, verbose=False):
+
+        """
+        Parameters
+        ----------
+        dna : dict 
+        verbose : bool 
+            default False 
+
+        Returns
+        -------
+        None 
+        """
+
+        # dna
+        super().__init__(dna=dna)
+        self.substrate_family = 'JumpStep'
+
+        # param
+        self._jump_time = 0
+        self._tau = 0
+        self._var_jump = 0 
+
+        # variables
+        self._drift = 0
+        self._feedback = 0
+        self._pre_weights = np.zeros(1)
+        self._post_weights = np.zeros(1)
+        self._counter = 0 
+
+        #
+        self._lr_mean = 0.01
+        self._lr_var = 0.01
+        self._est_mean = 0.
+        self._est_var = 0.
+
+        # activation functions
+        self._compute_jump_var = lambda x: max((1 - 3 * x, 0))
+        self._compute_direction = lambda x: np.sign(x - 0.5)
+        self._compute_direction = np.vectorize(self._compute_direction)
+
+        #
+        self._protein_jump_initialization()
+        self._update_dna()
+
+        if verbose:
+            print(f'\n@{self.substrate_class}.{self.substrate_family}.{self.substrate_id}', end='')
+            if self.trainable:
+                print(' [trainable]')
+            else:
+                print()
+
+    def _protein_jump_initialization(self):
+
+        """
+        check if the DNA contains the right parameters keys and \
+        initialize their values 
+
+        Returns
+        -------
+        None 
+        """
+
+        parameters_keys = tuple(self.DNA['params'].keys())
+
+        assert 'tau' in parameters_keys, "missing parameter 'tau'"
+        assert 'jump_time' in parameters_keys, "missing parameter 'jump_time'"
+        assert 'var_jump' in parameters_keys, "missing parameter 'var_jump'"
+
+        self._tau = self.DNA['params']['tau']
+        self._jump_time = self.DNA['params']['jump_time']
+        self._var_jump = self.DNA['params']['var_jump']
+
+        # optional parameters
+        if "lr_mean" in parameters_keys:
+            self._lr_mean = self.DNA['params']['lr_mean']
+        else:
+            self._lr_mean = 0.01
+            self.DNA['params']['lr_mean'] = self._lr_mean
+
+        if "lr_var" in parameters_keys:
+            self._lr_var = self.DNA['params']['lr_var']
+        else:
+            self._lr_var = 0.01
+            self.DNA['params']['lr_var'] = self._lr_var
+
+        # record the original parameters
+        self._original_params['tau'] = self._tau 
+        self._original_params['jump_time'] = self._jump_time 
+        self._original_params['var_jump'] = self._var_jump
+        self._original_params['lr_mean'] = self._lr_mean
+        self._original_params['lr_var'] = self._lr_var
+
+        # initialize the variables
+        self._pre_weights = self._weights.copy()
+        self._post_weights = self._weights.copy()
+    
+    def _update_dna(self):
+        
+        """
+        update the dna with the current parameters
+        
+        Returns
+        -------
+        None
+        """
+        
+        self._update_protein_dna()
+        self.DNA['params']['tau'] = self._tau
+        self.DNA['params']['jump_time'] = self._jump_time
+        self.DNA['params']['var_jump'] = self._var_jump
+
+    def _random_jump(self):
+
+        """
+        generate a random jump in the parameter space, by adding a noise vector \
+        to the current parameters
+        """
+
+        # copy weight matrix before the jump 
+        self._pre_weights = self._weights.copy()
+
+        # generate a random jump 
+        self._var_jump = self._compute_jump_var(self._est_var)
+        self._weights += self._compute_direction(np.random.binomial(1, self._est_mean, size=self._weights.shape)) * \
+            np.random.normal(0, self._var_jump, size=self._weights.shape)
+
+        # copu weight matrix after the jump
+        self._post_weights = self._weights.copy()
+
+    def _step_drift(self):
+
+        """
+        compute and apply a drift vector to the weights 
+        """
+
+        # compute the drift vector 
+        if self._feedback <= 0:
+            self._weights += (self._pre_weights - self._weights) / self._tau
+
+        else:
+            self._weights = self._post_weights.copy() # (self._post_weights - self._weights) / 3
+
+    def step(self):
+        
+        """
+        receive an input and the state is updated
+        
+        Returns
+        -------
+        None
+        """
+        
+        # forward
+        self.activity = self._weights @ self._ext_inputs
+    
+    def update(self):
+
+        """
+        the trainable parameters are updated
+        
+        Returns
+        -------
+        None
+        """
+
+        if 'w1' in self.trainable_names:
+
+            self._counter += 1
+            
+            # jump
+            if self._counter == self._jump_time:
+
+                self._random_jump()
+                self._counter = 0
+
+            # drift
+            self._step_drift()
+
+            # reset
+            self._feedback *= 0
+    
+    def add_feedback(self, ext_feedback: np.ndarray):
+        
+        """
+        record an external feedback
+        
+        Parameters
+        ----------
+        ext_feedback : np.ndarray
+            external feedback
+        
+        Returns 
+        -------
+        None
+        """
+
+
+        self._feedback = ext_feedback.copy() if isinstance(ext_feedback, np.ndarray) else ext_feedback
+
+        # squash feedback from [-1, 1] to [0, 1]
+        squashed_feedback = (ext_feedback + 1) / 2
+
+        # estimate the mean and variance of the feedback
+        self._est_mean += self._lr_mean * (squashed_feedback - self._est_mean)
+        self._est_var += self._lr_var * (abs(squashed_feedback - self._est_mean) - self._est_var)
+
+    def get_trainable_params(self):
+
+        """
+        Returns
+        -------
+        trainable_params : ndarray
+            shape=(nb_trainable,)
+        """
+
+        k = 0
+        for i, param in enumerate(self.trainable_names):
+            if param == 'tau':
+                self.trainable_params[i] = self._tau
+
+            elif param == 'jump_time':
+                self.trainable_params[i] = self._jump_time
+
+            elif param == 'var_jump':
+                self.trainable_params[i] = self._var_jump
+
+            elif param == f'w{k+1}':
+                self.trainable_params[i] = self._weights[0, k]
+                k += 1
+
+        return self.trainable_params    
+
+    def reset(self):
+
+        """
+        reset the run-time variables
+        
+        Returns
+        -------
+        None
+        """
+        
+        self.reset_protein()
+        self._drift *= 0
+        self._feedback *= 0
+        self._est_mean = 0
+        self._est_var = 0
+        self._pre_weights = self._weights.copy()
+        self._post_weights = self._weights.copy()
+
+        self._counter = 0
+        self._jump_time = self._original_params['jump_time']
+        self._tau = self._original_params['tau']
+        self._var_jump = self._original_params['var_jump']
+        self._lr_mean = self._original_params['lr_mean']
+        self._lr_var = self._original_params['lr_var']
+
+
+
 ### PROTEINS DICTIONARY ###
 
 protein_dict = {'exp': lambda dna, verbose: ProteinExp(dna=dna, verbose=verbose),
@@ -1450,7 +1718,8 @@ protein_dict = {'exp': lambda dna, verbose: ProteinExp(dna=dna, verbose=verbose)
                 'plasticity_reward': lambda dna, verbose: ProteinPlasticityReward(dna=dna, verbose=verbose),
                 'plasticity_hebb': lambda dna, verbose: ProteinPlasticityHebb(dna=dna, verbose=verbose),
                 'oja': lambda dna, verbose: ProteinPlasticityHebb(dna=dna, verbose=verbose),
-                'jump': lambda dna, verbose: ProteinJump(dna=dna, verbose=verbose)
+                'jump': lambda dna, verbose: ProteinJump(dna=dna, verbose=verbose),
+                'jump_step': lambda dna, verbose: ProteinJumpStep(dna=dna, verbose=verbose),
                 }
 
 

@@ -1,5 +1,8 @@
 import numpy as np
+
+import networkx as nx
 import pprint
+
 import warnings 
 
 
@@ -124,6 +127,9 @@ class Substrate:
         self.substrate_class = 'Substrate'
         self.substrate_family = 'root'
         self.substrate_id = '0'
+
+        # 'I' for input, 'O' for output, 'H' for hidden, '.' for undefined
+        self.substrate_role = "."
         self.unique_id = generate_unique_id()
         self.index = 0
 
@@ -157,7 +163,7 @@ class Substrate:
         
         self.verbose = verbose
         if verbose:
-            print(f'\n@{self.substrate_class}.{self.substrate_family}.{self.substrate_id}', end='')
+            print(f'\n@{self.substrate_class}.{self.substrate_family}.{self.substrate_id}.{self.substrate_role}', end='')
             if self.trainable:
                 print(' [trainable]')
             else:
@@ -206,6 +212,11 @@ class Substrate:
 
         # optionally available <more> keys
         self._lr = self.DNA['more']['lr'] if 'lr' in self.DNA['more'].keys() else 0.
+
+        # idendfiers
+        self.DNA['more']['idx'] = self.index
+        self.DNA['more']['uid'] = self.unique_id
+        self.DNA['more']['role'] = self.substrate_role
 
         ### INITIALIZATION ###
         self.nb_inputs = self.DNA['more']['nb_inp'] if 'nb_inp' in self.DNA['more'].keys() else 1
@@ -314,6 +325,23 @@ class Substrate:
         """
 
         self.substrate_id = _id
+
+    def set_role(self, role: str):
+
+        """
+        set the role of the Substrate
+
+        Parameters
+        ----------
+        role : str
+
+        Returns
+        -------
+        None
+        """
+
+        self.substrate_role = role
+        self.DNA['more']['role'] = role
 
     def set_backprop(self, flag: bool):
     
@@ -474,7 +502,7 @@ class Substrate:
         self._update_substrate_dna()
 
         if show:
-            print(f"{self.substrate_class}.{self.substrate_family}.{self.substrate_id}")
+            print(f"{self.substrate_class}.{self.substrate_family}.{self.substrate_id}.{self.substrate_role}")
             print_dna(dna=self.DNA, depth=depth)
             return
 
@@ -638,6 +666,7 @@ class SubstrateStructure(Substrate):
         
         # register each already built component
         for idx, a_component in enumerate(built_components):
+
             self.components += [a_component]
             
             # register trainable components
@@ -668,6 +697,9 @@ class SubstrateStructure(Substrate):
             # re-initialize each component and add its index
             self.components[i].re_initialize(nb_inputs=int(self.connectivity_matrix[i + self.nb_inputs].sum()))
             self.components[i].add_idx(idx=i)
+
+            if i < self.nb_inputs:
+                self.components[i].
 
             # if the components is within the substrate structure's trainable parameters
             # book space in track for the tracking of params of the internal components
