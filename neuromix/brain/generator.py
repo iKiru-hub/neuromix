@@ -207,7 +207,7 @@ def load_dna(dna: tuple):
         
         # merge 
         dna[1]['params'] = recorded_specs['params']
-        dna[1]['more'] = recorded_specs['more']
+        dna[1]['attrb'] = recorded_specs['attrb']
 
     #
     return dna 

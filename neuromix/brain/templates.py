@@ -185,25 +185,25 @@ class Substrate:
         keys = tuple(self.DNA.keys())
         assert 'params' in keys, "missing general key 'params' in DNA"
         assert isinstance(self.DNA['params'], dict), "general key 'params' must be a dict"
-        assert 'more' in keys, "missing general key 'more' in DNA"
-        assert isinstance(self.DNA['more'], dict), "general key 'more' must be a dict"
+        assert 'attrb' in keys, "missing general key 'attrb' in DNA"
+        assert isinstance(self.DNA['attrb'], dict), "general key 'attrb' must be a dict"
 
         # set trainable params if present 
-        if 'trainable_params' in self.DNA['more'].keys():
+        if 'trainable_params' in self.DNA['attrb'].keys():
 
             # check 
-            assert isinstance(self.DNA['more']['trainable_params'], list), \
+            assert isinstance(self.DNA['attrb']['trainable_params'], list), \
                 "trainable_params must be a list of strings"
-            for param in self.DNA['more']['trainable_params']:
+            for param in self.DNA['attrb']['trainable_params']:
                 self.trainable_names += [param]
 
         self.nb_trainable = len(self.trainable_names)
 
         # set backrpopagation flag
-        if 'backprop' in self.DNA['more'].keys():
-            self.backprop_enabled = self.DNA['more']['backprop']
+        if 'backprop' in self.DNA['attrb'].keys():
+            self.backprop_enabled = self.DNA['attrb']['backprop']
         else:
-            self.DNA['more']['backprop'] = False
+            self.DNA['attrb']['backprop'] = False
 
         # if the Substrate is trainable, initialize the trainable params container
         if self.nb_trainable > 0:
@@ -211,15 +211,17 @@ class Substrate:
             self.trainable = True
 
         # optionally available <more> keys
-        self._lr = self.DNA['more']['lr'] if 'lr' in self.DNA['more'].keys() else 0.
+        self._lr = self.DNA['attrb']['lr'] if 'lr' in self.DNA['attrb'].keys() else 0.
 
         # idendfiers
+        if 'more' not in self.DNA.keys():
+            self.DNA['more'] = {}
         self.DNA['more']['idx'] = self.index
         self.DNA['more']['uid'] = self.unique_id
         self.DNA['more']['role'] = self.substrate_role
 
         ### INITIALIZATION ###
-        self.nb_inputs = self.DNA['more']['nb_inp'] if 'nb_inp' in self.DNA['more'].keys() else 1
+        self.nb_inputs = self.DNA['attrb']['nb_inp'] if 'nb_inp' in self.DNA['attrb'].keys() else 1
         self._ext_inputs = np.zeros((self.nb_inputs, 1))
 
     def _update_substrate_dna(self):
@@ -231,10 +233,10 @@ class Substrate:
         None
         """
        
-        self.DNA['more']['trainable_params'] = self.trainable_names
-        self.DNA['more']['lr'] = self._lr
-        self.DNA['more']['backprop'] = self.backprop_enabled
-        self.DNA['more']['nb_inp'] = self.nb_inputs
+        self.DNA['attrb']['trainable_params'] = self.trainable_names
+        self.DNA['attrb']['lr'] = self._lr
+        self.DNA['attrb']['backprop'] = self.backprop_enabled
+        self.DNA['attrb']['nb_inp'] = self.nb_inputs
     
     def step(self):
 
@@ -470,6 +472,16 @@ class Substrate:
 
         return self.unique_id
 
+    def get_role(self):
+        
+        """
+        Returns
+        -------
+        role : str
+        """
+
+        return self.substrate_role
+
     def get_nb_inout(self):
 
         """
@@ -576,9 +588,9 @@ class SubstrateStructure(Substrate):
         
         self.trainable_components = []
         
-        # grapher
-        self.grapher = False
-        self.livestream = False
+        # graph
+        self.graph = nx.DiGraph()
+        self.graph_color = []
         
         # variables
         self.activity = np.zeros(self.nb_inputs + self.nb_components)
@@ -588,6 +600,7 @@ class SubstrateStructure(Substrate):
         self._substrate_structure_initialization()
         self._build_structure(built_components=built_components)
         self._update_structure_dna()
+        self._build_graph()
 
         if verbose:
             print(f'\n@{self.substrate_class}.{self.substrate_family}', end='')
@@ -620,17 +633,18 @@ class SubstrateStructure(Substrate):
             "'components' must be a list"
         assert 'connections' in structure_keys, "missing key 'connections'"
 
+        self.connections = self.DNA['connections']
 
         # attributes_keys check 
-        attributes_keys = tuple(self.DNA['more'].keys())
+        attributes_keys = tuple(self.DNA['attrb'].keys())
         assert 'idx_out' in attributes_keys, "missing attribute 'idx_out'"
-        assert isinstance(self.DNA['more']['idx_out'], list), "attribute 'idx_out' must be a list"
+        assert isinstance(self.DNA['attrb']['idx_out'], list), "attribute 'idx_out' must be a list"
         assert 'nb_out' in attributes_keys, "missing attribute 'nb_out'"
         assert 'cycles' in attributes_keys, "missing attribute 'cycles'"
         
-        self.idx_out = self.DNA['more']['idx_out']
-        self.nb_outputs = self.DNA['more']['nb_out']
-        self._cycles = self.DNA['more']['cycles']
+        self.idx_out = self.DNA['attrb']['idx_out']
+        self.nb_outputs = self.DNA['attrb']['nb_out']
+        self._cycles = self.DNA['attrb']['cycles']
 
         # 
         self.initialization_flag = True
@@ -650,20 +664,14 @@ class SubstrateStructure(Substrate):
         None
         """
 
-        print("building structure...")
         # check 
         assert isinstance(built_components, list), "built_components must be a list"
+        
+        self.components = []
 
         # alphabet for the parameters name
         alphabet = ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'l', 'k')
 
-        # list of components and connections
-        dna_components = self.DNA['components']
-        dna_connections = self.DNA['connections']
-
-        self.components = []
-        self.connections = []
-        
         # register each already built component
         for idx, a_component in enumerate(built_components):
 
@@ -684,22 +692,41 @@ class SubstrateStructure(Substrate):
         self.connectivity_matrix = np.zeros((tot, tot))
 
         # NB: the number of external inputs shall be considered; e.g. one input has index 0
-        for j, i in dna_connections:
+        for j, i in self.connections:
             if i >= tot:
                 raise ValueError(f'source index {i} is too big')
             if j >= tot:
                 raise ValueError(f'sink index {j} is too big')
             self.connectivity_matrix[i, j] = 1
 
+        # define input indices
+        self.idx_inp = []
+        for input_row in (self.connectivity_matrix.T)[:self.nb_inputs]:
+            self.idx_inp += (np.where(input_row == 1)[0] - self.nb_inputs).tolist()
+
+        # unique input indices
+        self.idx_inp = list(set(self.idx_inp))
+        self.DNA['attrb']['idx_inp'] = self.idx_inp
+
         # initialize the _weights for each component
+        nb_i, nb_h, nb_o = 1, 1, 1
         for i in range(self.nb_components):
 
             # re-initialize each component and add its index
             self.components[i].re_initialize(nb_inputs=int(self.connectivity_matrix[i + self.nb_inputs].sum()))
             self.components[i].add_idx(idx=i)
 
-            if i < self.nb_inputs:
-                self.components[i].
+            # set the role of the component
+
+            if i in self.idx_inp:
+                self.components[i].set_role(role=f'I{nb_i}')
+                nb_i += 1
+            elif i in self.idx_out:
+                self.components[i].set_role(role=f'O{nb_o}')
+                nb_o += 1
+            else:
+                self.components[i].set_role(role=f'H{nb_h}')
+                nb_h += 1
 
             # if the components is within the substrate structure's trainable parameters
             # book space in track for the tracking of params of the internal components
@@ -748,11 +775,39 @@ class SubstrateStructure(Substrate):
         if self.DNA['connections'].__len__() == 0:
             warnings.warn('Disconnected components: no connections detected')
 
-        if self.DNA['more']['nb_inp'] == 0:
+        if self.DNA['attrb']['nb_inp'] == 0:
             warnings.warn('Autonomous Structure: zero inputs specified')
 
-        if self.DNA['more']['nb_out'] == 0:
+        if self.DNA['attrb']['nb_out'] == 0:
             warnings.warn('Isolated Structure: zero outputs specified')
+
+    def _build_graph(self):
+
+        """
+        build the graph of the structure
+
+        Returns
+        -------
+        None
+        """
+
+        # define nodes with their names
+        nodes = [f'E{i+1}' for i in range(self.nb_inputs)] + \
+            [components.get_role() for components in self.components]
+
+        for (i, j) in self.connections:
+            self.graph.add_edge(nodes[i], nodes[j])
+
+        # set colors 
+        for node in self.graph.nodes:
+            if node[0] == 'E':
+                self.graph_color += ['grey']
+            elif node[0] == 'I':
+                self.graph_color += ['red']
+            elif node[0] == 'O':
+                self.graph_color += ['yellow']
+            else:
+                self.graph_color += ['orange']
 
     def step(self):
 
@@ -990,48 +1045,21 @@ class SubstrateStructure(Substrate):
         # initialize
         if self.grapher and self.livestream:
             self.grapher.initialize()
-    
-    def add_grapher(self):
         
+    def get_graph(self, show=False):
+
         """
-        add a mix.tools.Grapher object to live stream the activiy
-        
         Returns
         -------
-        None
+        graph : nx.Graph
+        graph_color : list
         """
-        
-        self.grapher = Grapher(connections=self.connections,
-                               nb_input=self.nb_input,
-                               nb_output=self.nb_output)
-        
-    def show_graph(self):
-       
-        """
-        plot the graph of connections if a grapher object has been added
-        
-        Returns
-        -------
-        None
-        """
-        
-        if not self.grapher:
-            warnings.warn("no grapher object has been added, no plot generated")
+
+        if show:
+            nx.draw(self.graph, with_labels=True, node_color=self.graph_color, node_size=600)
             return
-        
-        self.grapher.draw_graph()
-        
-    def get_grapher(self):
-       
-        """
-        Returns
-        -------
-        object : class.Grapher 
-            object with its graph data relative to this substrate structure;
-            return False if no grapher has been addedd
-        """
-        
-        return self.grapher
+
+        return self.graph, self.graph_color
 
     def reset_structure(self):
 
@@ -1122,8 +1150,8 @@ class Protein(Substrate):
         """
 
         # activation initialization | default None
-        if 'activation' in self.DNA['more']:
-            activation_name = self.DNA['more']['activation'] 
+        if 'activation' in self.DNA['attrb']:
+            activation_name = self.DNA['attrb']['activation'] 
             self._activation, self._activation_deriv = activation_functions[activation_name]
 
         ### WEIGHT INITIALIZATION ###
@@ -1153,8 +1181,8 @@ class Protein(Substrate):
         ### TRAINABLE RECORD ###
         # if the _weights are trainable, then update the trainable record 
         # adjusting for the number of inputs
-        if 'trainable_params' in self.DNA['more']:  # if trainable params are defined
-            if 'w' in self.DNA['more']['trainable_params'] or 'w1' in self.DNA['more']['trainable_params']:
+        if 'trainable_params' in self.DNA['attrb']:  # if trainable params are defined
+            if 'w' in self.DNA['attrb']['trainable_params'] or 'w1' in self.DNA['attrb']['trainable_params']:
 
                 self.nb_trainable = self.nb_inputs
                 
@@ -1181,7 +1209,7 @@ class Protein(Substrate):
         """
 
         self.DNA['params']['w'] = self._weights.tolist()
-        self.DNA['more']['nb_inp'] = self.nb_inputs
+        self.DNA['attrb']['nb_inp'] = self.nb_inputs
 
         # update the DNA
         self._update_substrate_dna()
@@ -1299,11 +1327,11 @@ class ProteinPlasticity(Protein):
         None
         """
         
-        attributes_keys = self.DNA['more']
+        attributes_keys = self.DNA['attrb']
         assert 'nb_extf' in attributes_keys, "missing attribute 'nb_extf'"
 
         # initialization
-        self.nb_extf = self.DNA['more']['nb_extf']
+        self.nb_extf = self.DNA['attrb']['nb_extf']
         self._externals = np.zeros(self.nb_extf)
 
     def step(self):
@@ -1431,8 +1459,8 @@ class CellPlasticity(SubstrateStructure):
         self.substrate_family = 'CellPlasticity'
 
         # output indexes 
-        if 'idx_out' in dna['more'].keys():
-            self.idx_out = dna['more']['idx_out']
+        if 'idx_out' in dna['attrb'].keys():
+            self.idx_out = dna['attrb']['idx_out']
             if isinstance(self.idx_out, int):
                 self.idx_out = [self.idx_out]
                 print('tupled!')
@@ -1482,22 +1510,22 @@ class CellPlasticity(SubstrateStructure):
         """
 
         # attributes keys check 
-        attributes_keys = self.DNA['more']
+        attributes_keys = self.DNA['attrb']
         assert 'idx_plastic' in attributes_keys, "missing attribute 'idx_plastic'"
-        assert isinstance(self.DNA['more']['idx_plastic'], list), "idx_plastic must be a list"
+        assert isinstance(self.DNA['attrb']['idx_plastic'], list), "idx_plastic must be a list"
         assert 'idx_intf' in attributes_keys, "missing attribute key 'idx_intf'"
-        assert isinstance(self.DNA['more']['idx_intf'], list), "idx_intf must be a list"
+        assert isinstance(self.DNA['attrb']['idx_intf'], list), "idx_intf must be a list"
         assert 'idx_extf' in attributes_keys, "missing attribute key 'idx_extf'"
-        assert isinstance(self.DNA['more']['idx_extf'], list), "idx_extf must be a list"
+        assert isinstance(self.DNA['attrb']['idx_extf'], list), "idx_extf must be a list"
 
         # initialize
-        self.idx_plastic = self.DNA['more']['idx_plastic']
-        self.idx_intf = self.DNA['more']['idx_intf']
-        self.idx_extf = self.DNA['more']['idx_extf']
+        self.idx_plastic = self.DNA['attrb']['idx_plastic']
+        self.idx_intf = self.DNA['attrb']['idx_intf']
+        self.idx_extf = self.DNA['attrb']['idx_extf']
         self._internals = np.zeros(len(self.idx_intf))
         self._externals = np.zeros(len(self.idx_extf))
 
-    def _build_structure(self, built_components: list):
+    def _build_structure2(self, built_components: list):
         
         """
         create each component from the DNA and store them in a list
@@ -1534,7 +1562,7 @@ class CellPlasticity(SubstrateStructure):
         self.trainable = self.trainable_components.__len__() > 0
 
         # number of inputs and components
-        self.nb_input = self.DNA['more']['nb_inp']  # inputs
+        self.nb_input = self.DNA['attrb']['nb_inp']  # inputs
         if self.idx_out is not None:
             try:
                 self.nb_output = len(self.idx_out)
@@ -1752,12 +1780,12 @@ root_dict = {'Substrate': lambda dna, verbose: Substrate(dna=dna, verbose=verbos
 ### empty Substrate DNA ###
 
 root_library = {'Substrate': {'params': {},
-                              'more': {'nb_inp': 0,
+                              'attrb': {'nb_inp': 0,
                                        'nb_out': 0}},
                 'SubstrateStructure': {'components': [],
                                        'connections': [],
                                        'params': {},
-                                       'more': {'nb_inp': 0,
+                                       'attrb': {'nb_inp': 0,
                                                 'nb_out': 0,
                                                 'idx_out': [],
                                                 'idx_plastic': [],
@@ -1765,16 +1793,16 @@ root_library = {'Substrate': {'params': {},
                                                 'cycles': 0}
                                       },
                 'Protein': {'params': {},
-                            'more': {'nb_inp': 0,
+                            'attrb': {'nb_inp': 0,
                                      'nb_out': 0}},
                 'ProteinPlasticity': {'params': {},
-                                      'more': {'nb_inp': 0, 
+                                      'attrb': {'nb_inp': 0, 
                                                'nb_out': 0,
                                                'nb_extf': 2}},
                 'Cell': {'components': [],
                          'connections': [],
                          'params': {},
-                         'more': {'nb_inp': 0,
+                         'attrb': {'nb_inp': 0,
                                   'nb_out': 0,
                                   'idx_out': [],
                                   'trainable_params': [],
@@ -1783,7 +1811,7 @@ root_library = {'Substrate': {'params': {},
                 'CellPlasticity': {'components': [],
                                    'connections': [],
                                    'params': {},
-                                   'more': {'nb_inp': 0,
+                                   'attrb': {'nb_inp': 0,
                                             'nb_out': 0,
                                             'idx_out': [],
                                             'idx_plastic': [],

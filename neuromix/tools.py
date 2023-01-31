@@ -7,9 +7,50 @@ Created on Thu Sep 22 17:13:43 2022
 
 import numpy as np
 import matplotlib.pyplot as plt
+import networkx as nx
+from neuromix import brain
+
+# list of available substrates
+SUBSTRATE_LIST = brain.cells.CELL_LIST + brain.networks.NETWORK_LIST
 
 
 class Grapher:
+
+    """ provide graphical network functionalities """
+
+    def __init__(self, dna: dict):
+
+        """
+        Parameters
+        ----------
+        dna: dict
+            the DNA of an object of class.SubstrateStructure
+
+        Returns
+        -------
+        None
+        """
+
+        assert dna[0] in SUBSTRATE_LIST, f"{dna[0]} dna is not valid"
+        self.nb_input = dna[1]['attrb']['nb_inp']
+        if 'idx_out' in dna[1]['attrb'].keys():
+            try:
+                self.nb_output = len(dna[1]['attrb']['idx_out'])
+            except TypeError:
+                self.nb_output = 1
+        else:
+            self.nb_output = 0
+
+        self.connections = np.array([list(pair) for pair in dna[1]['connections']])
+        self.nodes = tuple(range(np.min(self.connections), np.max(self.connections) + 1))
+        self.n = len(self.nodes)
+
+        self.coordinates = np.zeros((self.n, 2))
+
+        self.build()
+
+
+class Grapher2:
     
     """ provide graphical network functionalities  """
     
@@ -27,12 +68,11 @@ class Grapher:
         None
         """
         
-        assert dna[0] in ('Cell', 'Network'), f"{dna[0]} dna is not valid" 
-
-        self.nb_input = dna[1]['more']['nb_inp']
-        if 'idx_out' in dna[1]['more'].keys():
+        assert dna[0] in SUBSTRATE_LIST, f"{dna[0]} dna is not valid" 
+        self.nb_input = dna[1]['attrb']['nb_inp']
+        if 'idx_out' in dna[1]['attrb'].keys():
             try:
-                self.nb_output = len(dna[1]['more']['idx_out'])
+                self.nb_output = len(dna[1]['attrb']['idx_out'])
             except TypeError:
                 self.nb_output = 1
         else:

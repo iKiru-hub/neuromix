@@ -11,7 +11,7 @@ cell_library = {
                                 ],
                  'connections': [(0, 2), (1, 2), (0, 3), (1, 3), (2, 4), (3, 4)],
                  'params': {},
-                 'more': {'nb_inp': 2,
+                 'attrb': {'nb_inp': 2,
                           'nb_out': 1,
                           'idx_out': [2],
                           'lr': 0.01,
