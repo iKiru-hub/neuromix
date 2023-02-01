@@ -1437,7 +1437,7 @@ class ProteinJump(T.Protein):
         self._var_jump = self._original_params['var_jump']
 
 
-class ProteinJumpStep(T.Protein):
+class ProteinJumpStep(T.ProteinPlasticity):
 
     """ a Protein subclass 
 
@@ -1572,7 +1572,7 @@ class ProteinJumpStep(T.Protein):
         self._weights += self._compute_direction(np.random.binomial(1, self._est_mean, size=self._weights.shape)) * \
             np.random.normal(0, self._var_jump, size=self._weights.shape)
 
-        # copu weight matrix after the jump
+        # copy weight matrix after the jump
         self._post_weights = self._weights.copy()
 
     def _step_drift(self):
@@ -1704,7 +1704,7 @@ class ProteinJumpStep(T.Protein):
         self._lr_var = self._original_params['lr_var']
 
 
-class ProteinJumpTrace(T.Protein):
+class ProteinJumpTrace(T.ProteinPlasticity):
 
     """ a Protein subclass 
 
@@ -1728,30 +1728,38 @@ class ProteinJumpTrace(T.Protein):
 
         # dna
         super().__init__(dna=dna)
-        self.substrate_family = 'Jump'
+        self.substrate_family = 'JumpTrace'
 
         # param
         self._jump_time = 0
         self._tau = 0
+        self._lr_mean = 0
         self._tau_trace = 0
-        self._var_jump = 0 
 
         # variables
+        self._est_mean = 0
         self._drift = 0
         self._feedback = 0
         self._pre_weights = np.zeros(1)
         self._post_weights = np.zeros(1)
         self._counter = 0 
-        
         self._trace_jump = 0.
-        self._trace_reward = 0.
+
+        #
+        self._compute_direction = lambda x: np.sign(x - 0.5)
+        self._compute_direction = np.vectorize(self._compute_direction)
+
+
+        # the externals is partioned as follow:
+        # [0] : the flag for the jump
+        # [1:] : the customized variance of the jump
 
         #
         self._protein_jump_initialization()
         self._update_dna()
 
         if verbose:
-            print(f'\n@{self.substrate_class}.{self.substrate_family}.{self.substrate_id}', end='')
+            print(f'\n@{self.substrate_class}.{self.substrate_family}.{self.substrate_id}.{self.substrate_role}', end='')
             if self.trainable:
                 print(' [trainable]')
             else:
@@ -1771,22 +1779,32 @@ class ProteinJumpTrace(T.Protein):
         parameters_keys = tuple(self.DNA['params'].keys())
 
         assert 'tau' in parameters_keys, "missing parameter 'tau'"
+        assert 'tau_trace' in parameters_keys, "missing parameter 'tau_trace'"
         assert 'jump_time' in parameters_keys, "missing parameter 'jump_time'"
         assert 'var_jump' in parameters_keys, "missing parameter 'var_jump'"
 
         self._tau = self.DNA['params']['tau']
+        self._tau_trace = self.DNA['params']['tau_trace']
         self._jump_time = self.DNA['params']['jump_time']
         self._var_jump = self.DNA['params']['var_jump']
+        
+        # optional parameters
+        if "lr_mean" in parameters_keys:
+            self._lr_mean = self.DNA['params']['lr_mean']
+        else:
+            self._lr_mean = 0.01
+            self.DNA['params']['lr_mean'] = self._lr_mean
 
         # record the original parameters
         self._original_params['tau'] = self._tau 
         self._original_params['jump_time'] = self._jump_time 
         self._original_params['var_jump'] = self._var_jump
+        self._original_params['lr_mean'] = self._lr_mean
 
         # initialize the variables
         self._pre_weights = self._weights.copy()
         self._post_weights = self._weights.copy()
-    
+
     def _update_dna(self):
         
         """
@@ -1802,18 +1820,41 @@ class ProteinJumpTrace(T.Protein):
         self.DNA['params']['jump_time'] = self._jump_time
         self.DNA['params']['var_jump'] = self._var_jump
 
+    def _collect_internals(self):
+
+        """
+        collect internal variables relevant for the plasticity rule [to edit]
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        """
+
+        # compute the reward credit trace and record it as an internal variable
+        self._internals[0] = self._trace_jump * self._est_mean 
+
     def _random_jump(self):
 
         """
         generate a random jump in the parameter space, by adding a noise vector \
         to the current parameters
+
+        Returns
+        -------
+        None
         """
 
         # copy weight matrix before the jump 
         self._pre_weights = self._weights.copy()
 
-        # generate a random jump 
-        self._weights *= np.random.normal(1, self._var_jump, self._weights.shape)
+        # generate a random jump with:
+        # direction : binomial with parameter est_mean
+        # magnitude : normal with parameter var_jump from externals[1]
+        self._weights += self._compute_direction(np.random.binomial(1, self._est_mean, size=self._weights.shape)) * \
+            np.random.normal(0, self._externals[1], size=self._weights.shape)
 
         # copu weight matrix after the jump
         self._post_weights = self._weights.copy()
@@ -1827,7 +1868,6 @@ class ProteinJumpTrace(T.Protein):
         # compute the drift vector 
         if self._feedback <= 0:
             self._weights += (self._pre_weights - self._weights) / self._tau
-
         else:
             self._weights = self._post_weights.copy()
 
@@ -1856,21 +1896,32 @@ class ProteinJumpTrace(T.Protein):
 
         if 'w1' in self.trainable_names:
 
+            # compute jump trace 
+            try:
+                self._trace_jump -= self._trace_jump / self._tau_trace
+            except ZeroDivisionError:
+                self._trace_jump = 0
+
+            # udpate counter 
             self._counter += 1
             
-            # jump
-            if self._counter == self._jump_time:
+            # jump if the counter is greater than the jump time and the flag is on
+            if self._counter > self._jump_time and self._externals[0] > 0:
 
                 self._random_jump()
+
+                # record jump time
                 self._counter = 0
+                self._trace_jump += 1
 
             # drift
             self._step_drift()
 
-            # reset
+            # reset feedback
             self._feedback *= 0
 
-            #self._error *= 0
+            # collect internals
+            self._collect_internals()
     
     def add_feedback(self, ext_feedback: np.ndarray):
         
@@ -1887,8 +1938,12 @@ class ProteinJumpTrace(T.Protein):
         None
         """
 
-        #self._error = ext_feedback - self._feedback 
+        # record feedback
         self._feedback = ext_feedback
+
+        # squash feedback from [-1, 1] to [0, 1]
+        # estimate the mean of the feedback
+        self._est_mean += self._lr_mean * ((ext_feedback + 1) / 2 - self._est_mean)
 
     def get_trainable_params(self):
 
@@ -1927,6 +1982,8 @@ class ProteinJumpTrace(T.Protein):
         """
         
         self.reset_protein()
+        self._reset_plasticity()
+
         self._drift *= 0
         self._feedback *= 0
         self._pre_weights = self._weights.copy()
@@ -1953,6 +2010,7 @@ protein_dict = {'exp': lambda dna, verbose: ProteinExp(dna=dna, verbose=verbose)
                 'oja': lambda dna, verbose: ProteinPlasticityHebb(dna=dna, verbose=verbose),
                 'jump': lambda dna, verbose: ProteinJump(dna=dna, verbose=verbose),
                 'jump_step': lambda dna, verbose: ProteinJumpStep(dna=dna, verbose=verbose),
+                'jump_trace': lambda dna, verbose: ProteinJumpTrace(dna=dna, verbose=verbose),
                 }
 
 

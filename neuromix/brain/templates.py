@@ -89,6 +89,8 @@ activation_functions = {'sigmoid': (lambda x: 1 / (1 + np.exp(-x)),
                         'sigMod': (lambda x: 1 / (1 + np.exp(-x/0.09 + 6)),
                                    lambda x: (1 / (1 + np.exp(-x/0.09 + 6))) * \
                                        (1 - (1 / (1 + np.exp(-x/0.09 + 6))))),
+                        'softmax': (lambda x: np.exp(x) / np.sum(np.exp(x)),
+                                    None),
                         'relu': (lambda x: x * (x > 0),
                                  lambda x: 1 * (x > 0)),
                         'crelu': (lambda x: min((x * (x > 0), 1)),
@@ -98,6 +100,8 @@ activation_functions = {'sigmoid': (lambda x: 1 / (1 + np.exp(-x)),
                         'none': (lambda x: x,
                                  lambda x: 1)
                         }
+
+# derivative of the softmax function as lambda expression 
 
 
 #### SUBSTRATE ####
@@ -572,7 +576,7 @@ class SubstrateStructure(Substrate):
         """
 
         # set up
-        super().__init__(dna=dna)
+        Substrate.__init__(self, dna=dna)
         self.substrate_class = 'Structure'
         
         # hyperparams
@@ -738,7 +742,8 @@ class SubstrateStructure(Substrate):
             # set name
             self.trainable_names += [f'c_{alphabet[k]}{i}' for k
                                      in range(len(param_values))]
-            
+        
+
         # adjust 
         assert self.nb_trainable >= 0, 'negative number of trainable parameters'
             
@@ -1078,6 +1083,113 @@ class SubstrateStructure(Substrate):
             self.components[i].reset()
 
 
+#### PLASTICITY layer ####
+
+class PlasticityLayer:
+
+    def __init__(self, dna: dict):
+            
+        """
+        Parameters
+        ----------
+        dna: dict
+            dictionary containing the specifics of the substrate
+
+        Returns
+        -------
+        None
+        """
+
+        self.nb_intf = 0
+        self.nb_extf = 0
+
+        self._externals = np.array([])
+        self._internals = np.array([])
+        self.plasticity = False
+
+        self._plasticity_initialization(DNA=dna)
+
+    def _plasticity_initialization(self, DNA: dict):
+
+        """
+        initialize the plasticity rule [to edit]
+
+        Parameters
+        ----------
+        DNA: dict
+            dictionary containing the specifics of the substrate
+        
+        Returns
+        -------
+        None
+        """
+
+        # check the presence of the required attributes
+        if 'nb_intf' in DNA['attrb'].keys():
+            self.nb_intf = DNA['attrb']['nb_intf']
+            self._internals = np.zeros(self.nb_intf)
+            self.plasticity = True
+
+        if 'nb_extf' in DNA['attrb'].keys():
+            self.nb_extf = DNA['attrb']['nb_extf']
+            self._externals = np.zeros(self.nb_extf)
+            self.plasticity = True
+
+    def _collect_internals(self):
+
+        """
+        collect internal variables relevant for the plasticity rule [to edit]
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        """
+
+        pass
+            
+    def _reset_plasticity(self):
+
+        """
+        reset the value of the variables 
+        
+        Returns
+        -------
+        None
+        """
+
+        self._externals *= 0.
+        self._internals *= 0.
+
+    def collect_externals(self, externals: np.ndarray):
+
+        """
+        collect externals variables relevant for the plasticity rule
+        Parameters
+        ----------
+        externals: np.ndarray
+            array of variables of interest
+        
+        Returns
+        -------
+        None
+        """
+
+        self._externals = externals.copy()
+
+    def get_internals(self):
+
+        """
+        Returns
+        -------
+        internals : np.ndarray
+        """
+
+        return self._internals
+
+
 #### PROTEINS ####
 
 class Protein(Substrate):
@@ -1103,16 +1215,9 @@ class Protein(Substrate):
         """
 
         # set up
-        super().__init__(dna=dna)
+        Substrate.__init__(self, dna=dna)
         self.substrate_class = 'Protein'
         self.substrate_family = 'root'
-
-        # if _weights already defined in the DNA, use those
-        #if 'params' in tuple(self.DNA.keys()):
-        #    if 'w' in tuple(self.DNA['params'].keys()):
-        #        self._weights = np.array(self.DNA['params']['w']).reshape(1, \
-        #                                                    -1).astype(float)
-        #        self.initial__weights = self._weights.copy()
 
         # variables
         self._z = 0.
@@ -1132,7 +1237,7 @@ class Protein(Substrate):
         self._update_protein_dna()
 
         if verbose:
-            print(f'\n@{self.substrate_class}.{self.substrate_family}.{self.substrate_id}', end='')
+            print(f'\n@{self.substrate_class}.{self.substrate_family}.{self.substrate_id}.{self.substrate_role}', end='')
             if self.trainable:
                 print(' [trainable]')
             else:
@@ -1276,7 +1381,7 @@ class Protein(Substrate):
         self._weights = self._original_params['w'].copy()
 
 
-class ProteinPlasticity(Protein):
+class ProteinPlasticity(Protein, PlasticityLayer):
 
     """ base class for Protein implementing a plasticity rule
     
@@ -1298,41 +1403,20 @@ class ProteinPlasticity(Protein):
         """
 
         # dna
-        super().__init__(dna=dna)
-        self.substrate_family = 'Plasticity'
+        Protein.__init__(self, dna=dna)
+        PlasticityLayer.__init__(self, dna=dna)
 
-        # plasticity variables
-        self._externals = 0 
+        self.substrate_family = 'Plasticity'
         
         #
-        self._protein_plasticity_initialization()
         self._update_protein_dna()
 
         if verbose:
-            print(f'\n@{self.substrate_class}.{self.substrate_family}.{self.substrate_id}', end='')
+            print(f'\n@{self.substrate_class}.{self.substrate_family}.{self.substrate_id}.{self.substrate_role}', end='')
             if self.trainable:
                 print(' [trainable]')
             else:
                 print()
-
-    def _protein_plasticity_initialization(self):
-
-        """
-        minimal DNA check of the class.ProteinPlasticity, \
-        presence of nb of externals: factors used for the plasticity \
-        implemented
-
-        Returns
-        -------
-        None
-        """
-        
-        attributes_keys = self.DNA['attrb']
-        assert 'nb_extf' in attributes_keys, "missing attribute 'nb_extf'"
-
-        # initialization
-        self.nb_extf = self.DNA['attrb']['nb_extf']
-        self._externals = np.zeros(self.nb_extf)
 
     def step(self):
 
@@ -1359,22 +1443,6 @@ class ProteinPlasticity(Protein):
 
             self._feedback *= 0
 
-    def collect_internals(self, internals: np.ndarray):
-
-        """
-        collect internal variables relevant for the plasticity rule
-        Parameters
-        ----------
-        internals: np.ndarray
-            array of variables of interest
-        
-        Returns
-        -------
-        None
-        """
-
-        self._self.internals = internals
-
     def reset_protein_plasticity(self):
 
         """
@@ -1385,7 +1453,7 @@ class ProteinPlasticity(Protein):
         None
         """
         self.reset_protein()
-        self._externals *= 0 
+        self._reset_plasticity()
 
 
 #### CELLS ####
@@ -1415,11 +1483,11 @@ class Cell(SubstrateStructure):
         """
 
         # set up
-        super().__init__(dna=dna, built_components=built_components)
+        SubstrateStructure.__init__(self, dna=dna, built_components=built_components)
         self.substrate_family = 'Cell'
         
         if verbose:
-            print(f'\n@{self.substrate_class}.{self.substrate_family}.{self.substrate_id}', end='')
+            print(f'\n@{self.substrate_class}.{self.substrate_family}.{self.substrate_id}.{self.substrate_role}', end='')
             if self.trainable:
                 print(' [trainable]')
             else:
@@ -1428,10 +1496,9 @@ class Cell(SubstrateStructure):
             print(f'\nnb_components: {self.nb_components}\nnb_inputs: '
                   f'{self.nb_inputs}\nnb_outputs: {self.nb_outputs}'
                   f'\nnb_trainable: {self.nb_trainable}')
-                
 
 
-class CellPlasticity(SubstrateStructure):
+class CellPlasticity(SubstrateStructure, PlasticityLayer):
     
     """ a Structure subclass,
     
@@ -1455,7 +1522,9 @@ class CellPlasticity(SubstrateStructure):
         """
 
         # set up
-        super().__init__(dna=dna, built_components=built_components)
+        SubstrateStructure.__init__(self, dna=dna, built_components=built_components)
+        PlasticityLayer.__init__(self, dna=dna)
+
         self.substrate_family = 'CellPlasticity'
 
         # output indexes 
@@ -1480,8 +1549,8 @@ class CellPlasticity(SubstrateStructure):
         self.idx_extf = []
         
         # arrays in which to store the activity of the internal and external plasticity variables
-        self._internals = None
-        self._externals = None 
+        self._comp_internals = None
+        self._comp_externals = None 
         
         # initialize
         self._cell_plasticity_initialization()
@@ -1489,7 +1558,7 @@ class CellPlasticity(SubstrateStructure):
         self._update_structure_dna()
         
         if verbose:
-            print(f'\n@{self.substrate_class}.{self.substrate_family}.{self.substrate_id}', end='')
+            print(f'\n@{self.substrate_class}.{self.substrate_family}.{self.substrate_id}.{self.substrate_role}', end='')
             if self.trainable:
                 print(' [trainable]')
             else:
@@ -1514,7 +1583,7 @@ class CellPlasticity(SubstrateStructure):
         assert 'idx_plastic' in attributes_keys, "missing attribute 'idx_plastic'"
         assert isinstance(self.DNA['attrb']['idx_plastic'], list), "idx_plastic must be a list"
         assert 'idx_intf' in attributes_keys, "missing attribute key 'idx_intf'"
-        assert isinstance(self.DNA['attrb']['idx_intf'], list), "idx_intf must be a list"
+        assert isinstance(self.DNA['attrb']['idx_intf'], list), "nb_intf must be a list"
         assert 'idx_extf' in attributes_keys, "missing attribute key 'idx_extf'"
         assert isinstance(self.DNA['attrb']['idx_extf'], list), "idx_extf must be a list"
 
@@ -1522,8 +1591,8 @@ class CellPlasticity(SubstrateStructure):
         self.idx_plastic = self.DNA['attrb']['idx_plastic']
         self.idx_intf = self.DNA['attrb']['idx_intf']
         self.idx_extf = self.DNA['attrb']['idx_extf']
-        self._internals = np.zeros(len(self.idx_intf))
-        self._externals = np.zeros(len(self.idx_extf))
+        self._comp_internals = np.zeros(len(self.idx_intf))
+        self._comp_externals = np.zeros(len(self.idx_extf))
 
     def _build_structure2(self, built_components: list):
         
@@ -1623,7 +1692,20 @@ class CellPlasticity(SubstrateStructure):
         
         # 
         self.initialization_flag = True
+
+    def _collect_internals(self):
         
+        """
+        collect the values of the internal variables of interests
+        
+        Returns
+        -------
+        None
+        """
+    
+        self._comp_internals = np.concatenate([self.components[idx].get_internals() \
+                                                  for idx in self.idx_plastic])
+    
     def step(self):
 
         """
@@ -1638,7 +1720,7 @@ class CellPlasticity(SubstrateStructure):
 
             # get the activity of each component, input to its downstream neighbours
             for idx, component in enumerate(self.components):
-                self.activity[self.nb_input + idx] = component.get_output()
+                self.activity[self.nb_inputs + idx] = component.get_output()
 
             # each component loads the inputs from its inputs sources +
             # each component steps
@@ -1646,7 +1728,7 @@ class CellPlasticity(SubstrateStructure):
 
                 # indexes of the inputs to component idx
                 inputs_j = np.where(self.connectivity_matrix[i + 
-                                                             self.nb_input] != 0)[0]
+                                                             self.nb_inputs] != 0)[0]
 
                 if len(inputs_j) == 0:
                     continue
@@ -1658,19 +1740,12 @@ class CellPlasticity(SubstrateStructure):
                 # step
                 self.components[i].step()
                 
-                
-                # live graph
-                if self.grapher and self.livestream:
-                        
-                    self.grapher.live_graph(activations=self.activity)
-                
-
             # define the output as the activity of the output components
             for l, idx in enumerate(self.idx_out):
                 self.output[l] = self.components[idx].get_output()
 
             # set plasticity variables
-            self.set_internals()
+            self._collect_internals()
 
             # reset inputs
             try:
@@ -1712,7 +1787,7 @@ class CellPlasticity(SubstrateStructure):
 
         # the plasticity proteins collect internals 
         for k in self.idx_plastic:
-            self.components[k].collect_internals(internals=self._self.internals)
+            self.components[k].collect_externals(externals=self._comp_internals)
 
         # parameter update
         for idx in range(self.nb_components):
@@ -1720,50 +1795,6 @@ class CellPlasticity(SubstrateStructure):
         
         # reset
         self._feedback *= 0        
-        
-    def collect_input(self, inputs: np.ndarray):
-        
-        """
-        receive and store the inputs
-        
-        Parameters
-        ----------
-        inputs: np.ndarray
-        
-        Returns
-        -------
-        None
-        """
-
-        # external inputs
-        self.activity[:self.nb_input] = inputs
-        
-    def set_internals(self):
-        
-        """
-        collect the values of the internal variables of interests
-        
-        Returns
-        -------
-        None
-        """
-    
-        for i, idx in enumerate(self.idx_intf):
-            self._self.internals[i] = self.activity[idx]
-    
-    def reset(self):
-
-        """
-        reset current variables 
-
-        Returns
-        -------
-        None
-        """
-        self.reset_structure()
-
-        self._internals *= 0 
-        self._externals *= 0
 
 
 ### ROOT DICTIONARY ###

@@ -270,6 +270,9 @@ def generate_substrate(dna: tuple, verbose=False):
     return substrate
 
 
+#def generate_structure()
+
+
 if __name__ == '__main__':
     
     print('%generator')
