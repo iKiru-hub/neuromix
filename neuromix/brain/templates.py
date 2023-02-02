@@ -192,6 +192,7 @@ class Substrate:
         assert 'attrb' in keys, "missing general key 'attrb' in DNA"
         assert isinstance(self.DNA['attrb'], dict), "general key 'attrb' must be a dict"
 
+        print('training params: ', self.DNA['attrb'])
         # set trainable params if present 
         if 'trainable_params' in self.DNA['attrb'].keys():
 
@@ -200,8 +201,12 @@ class Substrate:
                 "trainable_params must be a list of strings"
             for param in self.DNA['attrb']['trainable_params']:
                 self.trainable_names += [param]
+        else:
+            self.DNA['attrb']['trainable_params'] = []
+            self.trainable_names = []
 
         self.nb_trainable = len(self.trainable_names)
+        print(f'Substrate - nb_trainable: {self.nb_trainable}')
 
         # set backrpopagation flag
         if 'backprop' in self.DNA['attrb'].keys():
@@ -280,7 +285,7 @@ class Substrate:
         None
         """
 
-        self._ext_inputs = inputs
+        self._ext_inputs = inputs.copy() if isinstance(inputs, np.ndarray) else inputs
 
     def add_feedback(self, ext_feedback: np.ndarray):
         
@@ -456,16 +461,33 @@ class Substrate:
     
             return self.backprop_enable
 
-    def get_substrate_name(self):
+    def get_substrate_identity(self, full=False):
 
         """
         Returns
         -------
-        substrate_name : str
+        substrate_identity : dict
+        """
+        if full:
+            return {'class': self.substrate_class, 'family': self.substrate_family, 'id': self.substrate_id, 'uid': self.unique_id, 'role': self.substrate_role, 'idx': self.index}
+
+        return {'class': self.substrate_class, 'family': self.substrate_family, 'id': self.substrate_id}
+
+    def print_substrate_identity(self, return_str=False):
+
+        """
+        Returns
+        -------
+        substrate_identity : str
         """
 
-        return f"{self.substrate_class}.{self.substrate_family}.{self.substrate_id}"
-  
+        if not return_str:
+            print(f"{self.substrate_class}.{self.substrate_family}.{self.substrate_id}", end='')
+            print(f", uid : {self.unique_id}, role: {self.substrate_role}, idx :{self.index}")
+    
+        return f"{self.substrate_class}.{self.substrate_family}.{self.substrate_id}" + \
+                f", uid : {self.unique_id}, role: {self.substrate_role}, idx :{self.index}"
+
     def get_unique_id(self):
 
         """
@@ -576,6 +598,7 @@ class SubstrateStructure(Substrate):
         """
 
         # set up
+        print('-Structure-')
         Substrate.__init__(self, dna=dna)
         self.substrate_class = 'Structure'
         
@@ -742,7 +765,7 @@ class SubstrateStructure(Substrate):
             # set name
             self.trainable_names += [f'c_{alphabet[k]}{i}' for k
                                      in range(len(param_values))]
-        
+        print(f'after built - nb trainable: {self.nb_trainable}')
 
         # adjust 
         assert self.nb_trainable >= 0, 'negative number of trainable parameters'
@@ -799,6 +822,10 @@ class SubstrateStructure(Substrate):
         # define nodes with their names
         nodes = [f'E{i+1}' for i in range(self.nb_inputs)] + \
             [components.get_role() for components in self.components]
+
+        # add nodes 
+        for node in nodes:
+            self.graph.add_node(node)
 
         for (i, j) in self.connections:
             self.graph.add_edge(nodes[i], nodes[j])
@@ -1061,7 +1088,7 @@ class SubstrateStructure(Substrate):
         """
 
         if show:
-            nx.draw(self.graph, with_labels=True, node_color=self.graph_color, node_size=600)
+            nx.draw_networkx(self.graph, pos=nx.shell_layout(self.graph), with_labels=True, node_color=self.graph_color, node_size=600)
             return
 
         return self.graph, self.graph_color

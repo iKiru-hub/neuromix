@@ -1995,6 +1995,171 @@ class ProteinJumpTrace(T.ProteinPlasticity):
         self._var_jump = self._original_params['var_jump']
 
 
+class ProteinCondSat(T.Protein):
+
+    """ a Protein subclass
+    
+    its dynamics are specified by a conductance-based voltage,
+    its activity shape is a delayed onset and exponential decay.
+
+    Specialization of a ProteinCond in that it saturate at 1.0
+    after enough stimulation
+    """
+
+    def __init__(self, dna: dict, verbose=False):
+
+        """
+        Parameters
+        ----------
+        dna : dict 
+        verbose : bool 
+            default False 
+
+        Returns
+        -------
+        None
+        """
+        
+        super().__init__(dna=dna)
+        self.substrate_family = 'CondSat'
+
+        # param
+        self._tau = 0
+        self._taug = 0
+        self._Eq = 0
+        self._Epeak = 0
+        self._thr_sat = 0.45
+
+        # var
+        self._g = 0
+        self._saturation = False
+        
+        #
+        self._protein_cond_initialization()
+        self._update_dna()
+
+        if verbose:
+            print(f'\n@{self.substrate_class}.{self.substrate_family}.{self.substrate_id}', end='')
+            if self.trainable:
+                print(' [trainable]')
+            else:
+                print()                
+
+    def _protein_cond_initialization(self):
+
+        """
+        check if the DNA contains the right parameters keys and \
+        initialize their values 
+
+        Returns
+        -------
+        None 
+        """
+
+        parameters_keys = tuple(self.DNA['params'].keys())
+
+        assert 'tau' in parameters_keys, "missing parameter 'tau'"
+        assert 'taug' in parameters_keys, "missing parameter 'taug'"
+        assert 'Eq' in parameters_keys, "missing parameter 'Eq'"
+        assert 'Epeak' in parameters_keys, "missing parameter 'Epeak'"
+        assert 'thr_sat' in parameters_keys, "missing parameter 'thr_sat'"
+
+        # initialization 
+        self._tau = self.DNA['params']['tau']
+        self._taug = self.DNA['params']['taug']
+        self._Eq = self.DNA['params']['Eq']
+        self._Epeak = self.DNA['params']['Epeak']
+        self._thr_sat = self.DNA['params']['thr_sat']
+        
+        self._original_params['tau'] = self._tau
+        self._original_params['taug'] = self._taug 
+        self._original_params['Eq'] = self._Eq 
+        self._original_params['Epeak'] = self._Epeak 
+        self._original_params['thr_sat'] = self._thr_sat
+
+        # var 
+        self._z = self._Eq
+
+    def _update_dna(self):
+        
+        """
+        update the dna with the current parameters
+        
+        Returns
+        -------
+        None
+        """
+        
+        self._update_protein_dna()
+        self.DNA['params']['tau'] = self._tau
+        self.DNA['params']['Eq'] = self._Eq
+        self.DNA['params']['taug'] = self._taug
+        self.DNA['params']['Epeak'] = self._Epeak        
+    
+    def re_initialize(self, nb_inputs: int):
+
+        """
+        nothing has to be initialized here
+
+        Parameters
+        ----------
+        nb_inputs : int 
+
+        Returns
+        -------
+        None 
+        """
+
+        pass
+
+    def step(self):
+        
+        """
+        receive an input and the state is updated
+        
+        Returns
+        -------
+        None
+        """
+
+
+        if not self._saturation:
+            self._z += (self._Eq - self._z) / self._tau + (self._Epeak - self._z) * self._g
+            self._g += (self._weights * self._ext_inputs - self._g) / self._taug
+
+            self.activity = self._activation(self._z)
+
+            #
+            if self._z > 0.4:
+                self._tau *= 1.005
+
+                if self._tau > 1e5:
+                    self._tau = 1e5
+                    self._z = 1.0
+                    self.activity = self._activation(self._z)
+                    self._saturation = True
+    
+    def reset(self):
+
+        """
+        reset the run-time variables
+        
+        Returns
+        -------
+        None
+        """
+        
+        self.reset_protein()
+        self._g = 0
+        self._tau = self._original_params['tau']
+        self._taug = self._original_params['taug']
+        self._Eq = self._original_params['Eq']
+        self._Epeak = self._original_params['Epeak']
+        self._thr_sat = self._original_params['thr_sat']
+        self._saturation = False
+
+
+
 ### PROTEINS DICTIONARY ###
 
 protein_dict = {'exp': lambda dna, verbose: ProteinExp(dna=dna, verbose=verbose),
@@ -2011,7 +2176,24 @@ protein_dict = {'exp': lambda dna, verbose: ProteinExp(dna=dna, verbose=verbose)
                 'jump': lambda dna, verbose: ProteinJump(dna=dna, verbose=verbose),
                 'jump_step': lambda dna, verbose: ProteinJumpStep(dna=dna, verbose=verbose),
                 'jump_trace': lambda dna, verbose: ProteinJumpTrace(dna=dna, verbose=verbose),
+                'cond_sat': lambda dna, verbose: ProteinCondSat(dna=dna, verbose=verbose),
                 }
+
+
+protein_codes = {'exp': 'PExp',
+                 'linear': 'PLin',
+                 'expbeta': 'PExb',
+                 'cond': 'PCon',
+                 'poly': 'PPol',
+                 'spike': 'PSpk',
+                 'plasticity_root': 'PPRo',
+                 'plasticity__stdp': 'PPSt',
+                 'plasticity_reward': 'PPRw',
+                 'plasticity_hebb': 'PPHe',
+                 'oja': 'POja',
+                 'jump': 'PJump',
+                 'jump_step': 'PJSt',
+}
 
 
 if __name__ == "__main__":

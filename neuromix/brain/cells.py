@@ -68,7 +68,7 @@ class CellJumpTrace(T.CellPlasticity):
     
     """ a Cell Plasticity subclass
     
-    it implements a network of elementary Proteins component
+    it implements a network of Protein Jump Trace components
     
     """
 
@@ -94,17 +94,23 @@ class CellJumpTrace(T.CellPlasticity):
         # parameters
         self._lr_est = 0.02
         self._nb_jumps = 0
-        self._compute_jump_var = lambda x: max((1 - 3 * x, 0))
+        self._compute_jump_var = lambda x: max((1 - 2.*x, 0.04))
         self._softmax = T.activation_functions['softmax'][0]
 
         # variables
-        self._jump_var = 0.
-        self._est_mean = 0.
-        self._est_var = 0.
+        self._jump_var = 1.
+        self._est_mean = 0.5
+        self._est_var = 1.
+
+        self._short_mean = 0.
+        self._short_var = .0
+
+        # saturation
+        # idx_intf -> [-1]: saturation protein
+        self._saturation_lv = 0.
 
         # initialize
         self._cell_jump_initialization()
-
         self.reset()
         
         if verbose:
@@ -118,7 +124,6 @@ class CellJumpTrace(T.CellPlasticity):
             print(f'\nnb_components: {self.nb_components}\nnb_inputs: '
                   f'{self.nb_inputs}\nnb_outputs: {self.nb_outputs}'
                   f'\nnb_trainable: {self.nb_trainable}')
-
 
     def _cell_jump_initialization(self):
 
@@ -171,7 +176,7 @@ class CellJumpTrace(T.CellPlasticity):
         credit_traces_soft = self._softmax(credit_traces)
 
         # define the jump variance from the estimated variance
-        self._jump_var = self._compute_jump_var(self._est_var)
+        self._jump_var = (1 - self._saturation_lv) * self._compute_jump_var(self._est_var)
 
         # define the selection of the jump probability distirbution among the
         # plasticity proteins #
@@ -190,6 +195,23 @@ class CellJumpTrace(T.CellPlasticity):
         jump_idx = np.random.choice(self.idx_plastic, size=self._nb_jumps)
         self._comp_internals[jump_idx, 0] = 1
 
+    def _compute_saturation(self):
+
+        """
+        sample the temperature of the cell through the CondSat component
+
+        Returns
+        -------
+        None
+        """
+
+        # run the CondSat component
+        self.components[self.idx_intf[-1]].collect_input(inputs=self._short_var)
+        self.components[self.idx_intf[-1]].step()
+
+        # get the output
+        self._saturation_lv = self.components[self.idx_intf[-1]].get_output()
+
     def update(self):
 
         """
@@ -199,6 +221,9 @@ class CellJumpTrace(T.CellPlasticity):
         -------
         None
         """
+
+        # 
+        self._compute_saturation()
 
         # the plasticity proteins their collect externals and update
         for k in self.idx_plastic:
@@ -231,6 +256,8 @@ class CellJumpTrace(T.CellPlasticity):
         # estimate the mean and variance of the feedback
         self._est_mean += self._lr_est * (squashed_feedback - self._est_mean)
         self._est_var += self._lr_est * (abs(squashed_feedback - self._est_mean) - self._est_var)
+        self._short_mean += 0.5 * (self.output.item() - self._short_mean)
+        self._short_var += 0.2 * (abs(self.output.item() - self._short_mean) - self._short_var)
 
         # deliver the global feedback to the plasticity proteins
         for k in self.idx_plastic:
@@ -251,9 +278,12 @@ class CellJumpTrace(T.CellPlasticity):
 
         # reset the internal variables
                 # variables
-        self._jump_var = 0.
-        self._est_mean *= 0
-        self._est_var *= 0
+        self._jump_var = 1
+        self._est_mean = 0.5
+        self._est_var = 0
+        self._short_mean = 0.5
+        self._short_var = 0
+        self._saturation_lv = 0
 
 
 ### dict 
@@ -270,6 +300,7 @@ cell_dict = {'root': lambda dna, built_components, verbose: \
              'jump_trace': lambda dna, built_components, verbose: \
         CellJumpTrace(dna=dna, built_components=built_components, verbose=verbose),
 }
+
 
 
 if __name__ == '__main__':
