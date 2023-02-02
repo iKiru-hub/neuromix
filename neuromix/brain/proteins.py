@@ -1735,6 +1735,7 @@ class ProteinJumpTrace(T.ProteinPlasticity):
         self._tau = 0
         self._lr_mean = 0
         self._tau_trace = 0
+        self._alphas = (0.3, 2, 3)
 
         # variables
         self._est_mean = 0
@@ -1801,6 +1802,13 @@ class ProteinJumpTrace(T.ProteinPlasticity):
         self._original_params['var_jump'] = self._var_jump
         self._original_params['lr_mean'] = self._lr_mean
 
+        # alphas
+        if "alphas" in parameters_keys:
+            self._alphas = self.DNA['params']['alphas']
+        else:
+            self._alphas = (1, 8, 2)
+            self.DNA['params']['alphas'] = self._alphas
+
         # initialize the variables
         self._pre_weights = self._weights.copy()
         self._post_weights = self._weights.copy()
@@ -1836,6 +1844,18 @@ class ProteinJumpTrace(T.ProteinPlasticity):
         # compute the reward credit trace and record it as an internal variable
         self._internals[0] = self._trace_jump * self._est_mean 
 
+    def _compute_bound(self):
+
+        """
+        define the bound on the weights
+
+        Returns
+        -------
+        None
+        """
+
+        return (self._alphas[2] / (1 + np.exp(-self._alphas[1] * np.exp(-self._weights**2 / self._alphas[0])))) - self._alphas[2] / 2
+
     def _random_jump(self):
 
         """
@@ -1853,8 +1873,10 @@ class ProteinJumpTrace(T.ProteinPlasticity):
         # generate a random jump with:
         # direction : binomial with parameter est_mean
         # magnitude : normal with parameter var_jump from externals[1]
-        self._weights += self._compute_direction(np.random.binomial(1, self._est_mean, size=self._weights.shape)) * \
+        jump = self._compute_direction(np.random.binomial(1, self._est_mean, size=self._weights.shape)) * \
             np.random.normal(0, self._externals[1], size=self._weights.shape)
+
+        self._weights += self._compute_bound() * jump  # bound the growth of the weight
 
         # copu weight matrix after the jump
         self._post_weights = self._weights.copy()
@@ -2076,6 +2098,10 @@ class ProteinCondSat(T.Protein):
         self._original_params['Eq'] = self._Eq 
         self._original_params['Epeak'] = self._Epeak 
         self._original_params['thr_sat'] = self._thr_sat
+        self._original_params['weights'] = self._weights.astype(np.float32) if isinstance(self._weights, np.ndarray) else self._weights
+
+        # float weights
+        self._weights = self._weights.astype(np.float32) if isinstance(self._weights, np.ndarray) else self._weights
 
         # var 
         self._z = self._Eq
@@ -2122,16 +2148,15 @@ class ProteinCondSat(T.Protein):
         None
         """
 
-
         if not self._saturation:
             self._z += (self._Eq - self._z) / self._tau + (self._Epeak - self._z) * self._g
-            self._g += (self._weights * self._ext_inputs - self._g) / self._taug
+            self._g += (self._weights.item() * self._ext_inputs - self._g) / self._taug
 
             self.activity = self._activation(self._z)
 
             #
-            if self._z > 0.4:
-                self._tau *= 1.005
+            if self._z > self._thr_sat:
+                self._tau *= 1.002
 
                 if self._tau > 1e5:
                     self._tau = 1e5

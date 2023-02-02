@@ -1,7 +1,6 @@
 import json
 import warnings
-#from .cells import *
-#from .networks import *
+import copy
 from neuromix.brain import proteins as P
 from neuromix.brain import cells as C
 from neuromix.brain import networks as N
@@ -188,10 +187,10 @@ def load_dna(dna: tuple):
         id_name = dna[1]['id']
         try:
             if substrate_name in P.PROTEIN_LIST:
-                recorded_specs = proteins_library[family_name][id_name]
+                recorded_specs = copy.deepcopy(proteins_library[family_name][id_name])
 
             elif substrate_name in C.CELL_LIST:
-                recorded_specs = cells_library[family_name][id_name]
+                recorded_specs = copy.deepcopy(cells_library[family_name][id_name])
 
                 # merge cell specific keys 
                 dna[1]['components'] = recorded_specs['components']

@@ -189,7 +189,7 @@ class CellJumpTrace(T.CellPlasticity):
 
         # partition of the jump variance among the plasticity proteins
         # 2nd column of comp_internals
-        self._comp_internals[:, 1] = self._jump_var * credit_traces_soft
+        self._comp_internals[:, 1] = np.clip(self._jump_var * credit_traces_soft, 0, 1)
 
         # draw the plastic protein to jump | 1st column of comp_internals
         jump_idx = np.random.choice(self.idx_plastic, size=self._nb_jumps)

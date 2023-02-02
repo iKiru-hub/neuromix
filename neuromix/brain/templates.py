@@ -192,7 +192,6 @@ class Substrate:
         assert 'attrb' in keys, "missing general key 'attrb' in DNA"
         assert isinstance(self.DNA['attrb'], dict), "general key 'attrb' must be a dict"
 
-        print('training params: ', self.DNA['attrb'])
         # set trainable params if present 
         if 'trainable_params' in self.DNA['attrb'].keys():
 
@@ -206,7 +205,6 @@ class Substrate:
             self.trainable_names = []
 
         self.nb_trainable = len(self.trainable_names)
-        print(f'Substrate - nb_trainable: {self.nb_trainable}')
 
         # set backrpopagation flag
         if 'backprop' in self.DNA['attrb'].keys():
@@ -598,7 +596,6 @@ class SubstrateStructure(Substrate):
         """
 
         # set up
-        print('-Structure-')
         Substrate.__init__(self, dna=dna)
         self.substrate_class = 'Structure'
         
@@ -746,13 +743,16 @@ class SubstrateStructure(Substrate):
             # set the role of the component
 
             if i in self.idx_inp:
-                self.components[i].set_role(role=f'I{nb_i}')
+                role = f'I{nb_i}'
+                self.components[i].set_role(role=role)
                 nb_i += 1
             elif i in self.idx_out:
-                self.components[i].set_role(role=f'O{nb_o}')
+                role = f'O{nb_o}'
+                self.components[i].set_role(role=role)
                 nb_o += 1
             else:
-                self.components[i].set_role(role=f'H{nb_h}')
+                role = f'H{nb_h}'
+                self.components[i].set_role(role=role)
                 nb_h += 1
 
             # if the components is within the substrate structure's trainable parameters
@@ -763,9 +763,8 @@ class SubstrateStructure(Substrate):
             param_values = self.components[i].get_trainable_names()
         
             # set name
-            self.trainable_names += [f'c_{alphabet[k]}{i}' for k
+            self.trainable_names += [f'c_{role.lower()}.{k}' for k
                                      in range(len(param_values))]
-        print(f'after built - nb trainable: {self.nb_trainable}')
 
         # adjust 
         assert self.nb_trainable >= 0, 'negative number of trainable parameters'
