@@ -693,9 +693,6 @@ class SubstrateStructure(Substrate):
         
         self.components = []
 
-        # alphabet for the parameters name
-        alphabet = ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'l', 'k')
-
         # register each already built component
         for idx, a_component in enumerate(built_components):
 
@@ -763,7 +760,7 @@ class SubstrateStructure(Substrate):
             param_values = self.components[i].get_trainable_names()
         
             # set name
-            self.trainable_names += [f'c_{role.lower()}.{k}' for k
+            self.trainable_names += [f'{role}.p{k}' for k
                                      in range(len(param_values))]
 
         # adjust 
@@ -1301,7 +1298,7 @@ class Protein(Substrate):
 
         # new weights
         else:
-            self._weights = np.around(np.abs(np.random.normal(1, 1 / np.sqrt(\
+            self._weights = np.around(np.abs(np.random.normal(0, 1 / np.sqrt(\
                                     self.nb_inputs + 1), (1, self.nb_inputs))), 4)
         
         

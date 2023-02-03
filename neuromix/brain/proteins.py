@@ -1735,7 +1735,7 @@ class ProteinJumpTrace(T.ProteinPlasticity):
         self._tau = 0
         self._lr_mean = 0
         self._tau_trace = 0
-        self._alphas = (0.3, 2, 3)
+        self._alphas = (0.4, 7, 2)
 
         # variables
         self._est_mean = 0
@@ -1749,7 +1749,6 @@ class ProteinJumpTrace(T.ProteinPlasticity):
         #
         self._compute_direction = lambda x: np.sign(x - 0.5)
         self._compute_direction = np.vectorize(self._compute_direction)
-
 
         # the externals is partioned as follow:
         # [0] : the flag for the jump

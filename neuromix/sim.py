@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-plt.style.use('seaborn')
 from neuromix import brain
 import warnings
 from tqdm import tqdm 
@@ -1394,6 +1393,62 @@ class Gym(TestMap):
 
         return self.targets, self.stimuli_data['target'], self.checklist['target']
 
+
+def build_dataset(nb_classes: int, nb_features: int, nb_rep: int, size: int, show=False):
+
+    """
+    Generate a dataset with a given number of classes, features and size.
+
+    Parameters
+    ----------
+    nb_classes : int
+        Number of classes.
+    nb_features : int
+        Number of features.
+    nb_rep : int
+        Number of repetitions.
+    size : int
+        Size of the dataset.
+
+    Returns
+    -------
+    X : ndarray
+        The generated dataset.
+    Y : ndarray
+        The generated labels.
+    """
+
+    # Generate the classes
+    class_instances = [np.around(np.random.uniform(0, 1, (nb_features,)), 3) for _ in range(nb_classes)]
+
+    # Generate the labels
+    labels = np.linspace(0.2, 0.8, nb_classes)
+
+    # Generate the dataset
+    X = np.zeros((size, nb_features))
+    Y = np.zeros((size, 1))
+
+    k = 0  # class index 
+    for i in range(0, size, nb_rep):
+        
+        class_inst = class_instances[k]
+        label = labels[k]
+
+        for j in range(nb_rep):
+            X[i + j] = class_inst
+            Y[i + j] = label
+
+            if i + j + 1 == size:
+                break
+
+        k = (k + 1) % nb_classes
+
+    if show:
+        print("Dataset:")
+        for k in range(nb_classes):
+            print(f"Class {k}: {class_instances[k]} [{labels[k]}]")
+
+    return X, Y
 
 ########### AGENTS ###########
 
